@@ -1,0 +1,6 @@
+{
+  "name": "AuraAI — Multi-Model AI Chat Platform",
+  "description": "Modern multi-model AI assistant platform with BYOK, admin-managed local models, credit subscriptions, and plugin marketplace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
