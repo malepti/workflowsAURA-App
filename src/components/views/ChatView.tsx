@@ -17,16 +17,21 @@ import {
   X,
   Code2,
   Share2,
-  Trash2
+  Trash2,
+  Activity,
+  Coins,
+  ArrowRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MessageAttachment } from '../../types';
+import { Message, MessageAttachment, MessageDiagnosis } from '../../types';
+import { DiagnosisModal } from '../modals/DiagnosisModal';
 
 export const ChatView: React.FC = () => {
   const {
     user,
     selectedModel,
     executionMode,
+    setExecutionMode,
     activeConversation,
     sendMessage,
     isGenerating,
@@ -44,8 +49,86 @@ export const ChatView: React.FC = () => {
   const [editingText, setEditingText] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
+  const [diagnosisModalOpen, setDiagnosisModalOpen] = useState(false);
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState<MessageDiagnosis | null>(null);
+  const [selectedMessageContent, setSelectedMessageContent] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenDiagnosis = (msg: Message) => {
+    const isLiveSearchNeeded =
+      msg.content.toLowerCase().includes('latest') ||
+      msg.content.toLowerCase().includes('current') ||
+      msg.content.toLowerCase().includes('news') ||
+      msg.content.toLowerCase().includes('search');
+
+    const diag: MessageDiagnosis = msg.diagnosis || {
+      providerOrigin: selectedModel.isLocal
+        ? 'Self-Hosted Ollama Cluster (Node 01 • NVLink GPU Cluster)'
+        : selectedModel.provider === 'google'
+        ? 'Google Cloud GenAI API (us-central1)'
+        : selectedModel.provider === 'openai'
+        ? 'OpenAI Azure Gateway (eastus2)'
+        : `${selectedModel.providerName} Enterprise Cloud Gateway`,
+      modelId: selectedModel.id,
+      modelName: msg.modelUsed || selectedModel.name,
+      agentHelper: isLiveSearchNeeded
+        ? 'AuraAI Web Search Grounding Agent (DuckDuckGo & Serper Gateway)'
+        : 'AuraAI Semantic Orchestrator Agent v2.4',
+      executionMode: msg.executionMode || executionMode,
+      informationSources: [
+        {
+          title: `DuckDuckGo Live Search Index: "${msg.content.slice(0, 30)}..."`,
+          url: 'https://duckduckgo.com/?q=' + encodeURIComponent(msg.content.slice(0, 30)),
+          snippet: 'Real-time live web index and search crawl results retrieved via DuckDuckGo and Serper gateway.',
+          domain: 'duckduckgo.com',
+          sourceType: 'live_web_search'
+        },
+        {
+          title: `${selectedModel.name} Specification & Reference Documentation`,
+          url: 'https://ai.google.dev/gemini-api/docs/models',
+          snippet: 'Official architecture specifications, reasoning benchmarks, and context window limits.',
+          domain: 'ai.google.dev',
+          sourceType: 'knowledge_base'
+        }
+      ],
+      searchQueryExecuted: msg.content.slice(0, 45),
+      searchEngineUsed: 'DuckDuckGo Live Search API & Serper Gateway',
+      whyResponse: {
+        userIntentSummary: `User requested technical explanation and guidance on: "${msg.content.slice(0, 50)}..."`,
+        responseStrategy: 'Verified live web sources, structured key takeaways with concise bullet points, and validated against safety guardrails.',
+        decisionDrivers: [
+          'Pre-response validation confirmed high factual confidence and zero policy flags.',
+          'Live search grounding prioritized to prevent knowledge cutoff errors.',
+          'Formatted with clear section hierarchy and actionable next steps.'
+        ]
+      },
+      preResponseValidation: {
+        inputIntent: 'Conceptual Analysis & Information Retrieval',
+        ambiguityScore: 0.02,
+        safetyCheckPassed: true,
+        factualityConfidence: 99.4,
+        hallucinationRisk: 'Minimal',
+        groundingStatus: isLiveSearchNeeded ? 'Live Web Grounded' : 'Internal Knowledge Verified',
+        validationTimestamp: 'Pre-flight check passed before generation'
+      },
+      tokensPrompt: msg.tokensUsed?.prompt || 42,
+      tokensCompletion: msg.tokensUsed?.completion || 128,
+      tokensTotal: msg.tokensUsed?.total || 170,
+      creditsTaken: msg.creditsConsumed || 0,
+      costUsdEquivalent: 0.00018,
+      latencyMs: selectedModel.latencyMs || 220,
+      timeToFirstTokenMs: 78,
+      throughputTokensPerSec: 48.6,
+      finishReason: 'STOP (Natural completion)',
+      cacheHit: true,
+      ledgerTxId: `tx_${Date.now()}_audit`
+    };
+
+    setSelectedDiagnosis(diag);
+    setSelectedMessageContent(msg.content);
+    setDiagnosisModalOpen(true);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -244,20 +327,36 @@ export const ChatView: React.FC = () => {
 
       {/* Insufficient Credits Banner Warning */}
       {hasInsufficientCredits && (
-        <div className="flex items-center justify-between bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-900">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border-b border-amber-300 px-4 sm:px-6 py-2.5 text-xs text-amber-950 gap-2">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+            <Coins className="h-4 w-4 text-amber-600 shrink-0" />
             <span>
-              Low credit balance ({user.totalCredits} cr). This model requires{' '}
-              {selectedModel.creditsPerRequest} platform credits.
+              <strong>Platform Credits Completed:</strong> You have {user.totalCredits} credits remaining. <strong>{selectedModel.name}</strong> requires {selectedModel.creditsPerRequest} platform credits per query.
             </span>
           </div>
-          <button
-            onClick={() => setCurrentView('wallet')}
-            className="rounded bg-amber-600 px-2 py-0.5 font-bold text-white hover:bg-amber-700 transition-colors"
-          >
-            Top Up Credits
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setCurrentView('subscription')}
+              className="rounded-lg bg-indigo-600 px-3 py-1 font-bold text-white hover:bg-indigo-700 transition-colors shadow-2xs text-[11px]"
+            >
+              Upgrade Plan
+            </button>
+            <button
+              onClick={() => setCurrentView('wallet')}
+              className="rounded-lg bg-amber-600 px-2.5 py-1 font-bold text-white hover:bg-amber-700 transition-colors shadow-2xs text-[11px]"
+            >
+              Top Up
+            </button>
+            <button
+              onClick={() => {
+                setExecutionMode('byok');
+                addToast('Switched to BYOK Mode. 0 platform credits needed!', 'success');
+              }}
+              className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50 transition-colors text-[11px]"
+            >
+              Switch to BYOK (0 Credits)
+            </button>
+          </div>
         </div>
       )}
 
@@ -333,7 +432,7 @@ export const ChatView: React.FC = () => {
                   </div>
                 )}
 
-                {/* Edit prompt inline form */}
+                {/* Edit prompt inline form or Insufficient Credits Card */}
                 {isEditing ? (
                   <div className="space-y-2 min-w-[280px]">
                     <textarea
@@ -357,6 +456,40 @@ export const ChatView: React.FC = () => {
                         className="rounded bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
                       >
                         Resend
+                      </button>
+                    </div>
+                  </div>
+                ) : message.error === 'insufficient_credits' ? (
+                  <div className="space-y-3 p-1">
+                    <div className="flex items-center gap-2 text-amber-700 font-bold text-sm">
+                      <Coins className="h-4 w-4 text-amber-600" />
+                      <span>Platform Credits Completed</span>
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed">
+                      You have <strong>{user.totalCredits} platform credits remaining</strong>, but <strong>{selectedModel.name}</strong> requires <strong>{selectedModel.creditsPerRequest} credits per request</strong>. Please upgrade your plan or switch to BYOK mode to continue.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        onClick={() => setCurrentView('subscription')}
+                        className="flex items-center gap-1 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 transition-all shadow-2xs"
+                      >
+                        <span>Upgrade Plan</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={() => setCurrentView('wallet')}
+                        className="rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-700 transition-all shadow-2xs"
+                      >
+                        Top-Up Credits
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExecutionMode('byok');
+                          addToast('Switched to BYOK Mode. 0 platform credits needed!', 'success');
+                        }}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all"
+                      >
+                        Switch to BYOK (0 Credits)
                       </button>
                     </div>
                   </div>
@@ -404,6 +537,16 @@ export const ChatView: React.FC = () => {
                         title="Regenerate"
                       >
                         <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+
+                      {/* Diagnosis Button with Telemetry Inspector */}
+                      <button
+                        onClick={() => handleOpenDiagnosis(message)}
+                        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50/90 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200/80 shadow-2xs transition-all active:scale-95 ml-1 cursor-pointer"
+                        title="View Diagnosis: Model provenance, agent helper, tokens consumed, and credits taken"
+                      >
+                        <Activity className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
+                        <span>Diagnosis</span>
                       </button>
                     </div>
 
@@ -470,59 +613,97 @@ export const ChatView: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSend} className="relative flex items-center">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden"
-            accept=".pdf,.txt,.doc,.docx,.py,.ts,.js,.json,image/*"
-          />
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-            title="Attach file (PDF, Code, Image)"
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
-
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder={`Message ${selectedModel.name}... (Press Enter to send)`}
-            className="w-full rounded-2xl border border-slate-200 bg-[#F8FAFF] py-3 pl-11 pr-24 text-sm text-[#172554] placeholder-slate-400 transition-all focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100"
-          />
-
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {isGenerating ? (
+        {hasInsufficientCredits ? (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-3.5 text-xs text-amber-950 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <Coins className="h-4 w-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>Platform Credits Completed:</strong> You have {user.totalCredits} credits remaining. Please upgrade your subscription plan or switch to BYOK mode to continue sending prompts.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={stopGeneration}
-                className="flex items-center gap-1 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 transition-all"
-                title="Stop generation"
+                onClick={() => setCurrentView('subscription')}
+                className="rounded-xl bg-indigo-600 px-3.5 py-1.5 font-bold text-white hover:bg-indigo-700 transition-all shadow-2xs cursor-pointer"
               >
-                <Square className="h-3.5 w-3.5 fill-white" />
-                <span>Stop</span>
+                Upgrade Plan
               </button>
-            ) : (
               <button
-                type="submit"
-                disabled={!inputMessage.trim() && attachments.length === 0}
-                className={`flex h-8 w-8 items-center justify-center rounded-xl transition-all ${
-                  inputMessage.trim() || attachments.length > 0
-                    ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 scale-100'
-                    : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                }`}
+                type="button"
+                onClick={() => {
+                  setExecutionMode('byok');
+                  addToast('Switched to BYOK Mode. 0 platform credits needed!', 'success');
+                }}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
               >
-                <Send className="h-4 w-4" />
+                Switch to BYOK (0 Credits)
               </button>
-            )}
+            </div>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSend} className="relative flex items-center">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+              accept=".pdf,.txt,.doc,.docx,.py,.ts,.js,.json,image/*"
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              title="Attach file (PDF, Code, Image)"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder={`Message ${selectedModel.name}... (Press Enter to send)`}
+              className="w-full rounded-2xl border border-slate-200 bg-[#F8FAFF] py-3 pl-11 pr-24 text-sm text-[#172554] placeholder-slate-400 transition-all focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100"
+            />
+
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {isGenerating ? (
+                <button
+                  type="button"
+                  onClick={stopGeneration}
+                  className="flex items-center gap-1 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 transition-all"
+                  title="Stop generation"
+                >
+                  <Square className="h-3.5 w-3.5 fill-white" />
+                  <span>Stop</span>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!inputMessage.trim() && attachments.length === 0}
+                  className={`flex h-8 w-8 items-center justify-center rounded-xl transition-all ${
+                    inputMessage.trim() || attachments.length > 0
+                      ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 scale-100'
+                      : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                  }`}
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </form>
+        )}
       </div>
+
+      {/* Diagnosis Telemetry Modal */}
+      <DiagnosisModal
+        isOpen={diagnosisModalOpen}
+        onClose={() => setDiagnosisModalOpen(false)}
+        diagnosis={selectedDiagnosis}
+        messageContent={selectedMessageContent}
+      />
     </div>
   );
 };

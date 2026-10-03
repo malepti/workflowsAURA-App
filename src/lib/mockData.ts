@@ -533,7 +533,26 @@ Would you like to explore setting up an Ollama local cluster or testing BYOK key
         modelUsed: 'Llama 3.3 70B Instruct',
         executionMode: 'platform_managed',
         creditsConsumed: 3,
-        tokensUsed: { prompt: 142, completion: 285, total: 427 }
+        tokensUsed: { prompt: 142, completion: 285, total: 427 },
+        diagnosis: {
+          providerOrigin: 'Self-Hosted Ollama Cluster (Node 01 • NVLink GPU Cluster)',
+          modelId: 'llama-3-3-70b',
+          modelName: 'Llama 3.3 70B Instruct',
+          agentHelper: 'AuraAI Code Synthesis & Sandbox Agent v3.1',
+          executionMode: 'platform_managed',
+          tokensPrompt: 142,
+          tokensCompletion: 285,
+          tokensTotal: 427,
+          creditsTaken: 3,
+          costUsdEquivalent: 0.00021,
+          latencyMs: 180,
+          timeToFirstTokenMs: 65,
+          throughputTokensPerSec: 58.4,
+          finishReason: 'STOP (Natural completion)',
+          cacheHit: true,
+          ledgerTxId: 'tx_seed_01_llama70b',
+          encryptionStatus: 'Self-Hosted Airgapped NVLink Node (100% Private)'
+        }
       }
     ]
   },
@@ -574,7 +593,26 @@ Would you like to explore setting up an Ollama local cluster or testing BYOK key
         modelUsed: 'Gemini 2.5 Flash',
         executionMode: 'byok',
         creditsConsumed: 0,
-        tokensUsed: { prompt: 58, completion: 140, total: 198 }
+        tokensUsed: { prompt: 58, completion: 140, total: 198 },
+        diagnosis: {
+          providerOrigin: 'Google Cloud GenAI API (us-central1)',
+          modelId: 'gemini-2.5-flash',
+          modelName: 'Gemini 2.5 Flash',
+          agentHelper: 'AuraAI Semantic Orchestrator Agent v2.4',
+          executionMode: 'byok',
+          tokensPrompt: 58,
+          tokensCompletion: 140,
+          tokensTotal: 198,
+          creditsTaken: 0,
+          costUsdEquivalent: 0.00012,
+          latencyMs: 140,
+          timeToFirstTokenMs: 42,
+          throughputTokensPerSec: 62.5,
+          finishReason: 'STOP (Natural completion)',
+          cacheHit: true,
+          ledgerTxId: 'tx_seed_02_geminiflash',
+          encryptionStatus: 'AES-256-GCM Vault Decrypted (Zero Plaintext Log)'
+        }
       }
     ]
   },
@@ -605,7 +643,26 @@ Would you like to explore setting up an Ollama local cluster or testing BYOK key
         modelUsed: 'Qwen 2.5 Coder 32B',
         executionMode: 'platform_managed',
         creditsConsumed: 2,
-        tokensUsed: { prompt: 75, completion: 160, total: 235 }
+        tokensUsed: { prompt: 75, completion: 160, total: 235 },
+        diagnosis: {
+          providerOrigin: 'Self-Hosted Ollama Cluster (Node 01 • NVLink GPU Cluster)',
+          modelId: 'qwen-2-5-coder-32b',
+          modelName: 'Qwen 2.5 Coder 32B',
+          agentHelper: 'AuraAI Code Synthesis & Sandbox Agent v3.1',
+          executionMode: 'platform_managed',
+          tokensPrompt: 75,
+          tokensCompletion: 160,
+          tokensTotal: 235,
+          creditsTaken: 2,
+          costUsdEquivalent: 0.00015,
+          latencyMs: 160,
+          timeToFirstTokenMs: 52,
+          throughputTokensPerSec: 54.0,
+          finishReason: 'STOP (Natural completion)',
+          cacheHit: true,
+          ledgerTxId: 'tx_seed_03_qwencoder',
+          encryptionStatus: 'Self-Hosted Airgapped NVLink Node (100% Private)'
+        }
       }
     ]
   },

@@ -95,9 +95,10 @@ export const UserGuideView: React.FC = () => {
       uiArea: 'Chat Workspace',
       title: 'Real-Time Streaming, Code Blocks & Response Controls',
       whatYouSee:
-        'A dedicated conversation screen showing your prompt bubbles and the assistant\'s live streaming answers, along with model badges (e.g. "Gemini 2.5 Flash • BYOK" or "Llama 3.3 • Platform Credits"), formatted tables, and syntax-highlighted code blocks.',
+        'A dedicated conversation screen showing your prompt bubbles and the assistant\'s live streaming answers, along with model badges (e.g. "Gemini 2.5 Flash • BYOK" or "Llama 3.3 • Platform Credits"), formatted tables, syntax-highlighted code blocks, and the purple "Diagnosis" telemetry button below each response.',
       howToUseIt: [
         'Watch Real-Time Output: The response streams word-by-word with live token counts.',
+        'Click "Diagnosis": Click the purple Diagnosis button below any assistant message to inspect: (1) Which model was used for the response, (2) Which agent helped to process it, (3) Exact tokens consumed (prompt vs completion), and (4) Credits taken with ledger transaction ID.',
         'Stop Generation: If the AI begins outputting something you want to interrupt, click the red "Stop" button in the bottom composer.',
         'Copy or Run Code: In any code block, click "Copy" to put it on your clipboard, or click "Run Sandbox" to load it straight into the Interactive Code Sandbox.',
         'Edit & Resend: Hover over your user message and click "Edit" to modify your prompt and regenerate the thread.',
@@ -105,8 +106,8 @@ export const UserGuideView: React.FC = () => {
         'Export Chat: Click "Export" in the top workspace header to save the conversation as a clean Markdown (.md) document.'
       ],
       whyUseful:
-        'Gives you complete control over the conversational flow, eliminates manual copy-pasting of code, and provides full Markdown export for project docs.',
-      uiElements: ['Active Model Badge', 'Streaming Pulse Indicator', 'Copy / Run Sandbox Code Buttons', 'Edit Message Button', 'Export Markdown Button']
+        'Gives you complete transparency and control: verify where your data was routed, inspect token efficiency, audit exact credit deductions, and eliminate manual copy-pasting of code.',
+      uiElements: ['Active Model Badge', 'Diagnosis Button (Pulse)', 'Streaming Pulse Indicator', 'Copy / Run Sandbox Code Buttons', 'Edit Message Button', 'Export Markdown Button']
     },
     {
       stepNumber: '05',

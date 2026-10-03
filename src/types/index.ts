@@ -49,6 +49,63 @@ export interface MessageAttachment {
   previewUrl?: string;
 }
 
+export interface SearchSource {
+  title: string;
+  url: string;
+  snippet: string;
+  domain?: string;
+  sourceType: 'live_web_search' | 'document_rag' | 'knowledge_base';
+}
+
+export interface PreResponseValidation {
+  inputIntent: string;
+  ambiguityScore: number;
+  safetyCheckPassed: boolean;
+  factualityConfidence: number;
+  hallucinationRisk: 'Minimal' | 'Low' | 'Medium';
+  groundingStatus: 'Live Web Grounded' | 'Internal Knowledge Verified' | 'Document RAG Grounded';
+  validationTimestamp: string;
+}
+
+export interface WhyResponseRationale {
+  userIntentSummary: string;
+  responseStrategy: string;
+  decisionDrivers: string[];
+  alternativeApproachesConsidered?: string;
+}
+
+export interface MessageDiagnosis {
+  providerOrigin: string;
+  modelId: string;
+  modelName: string;
+  agentHelper: string;
+  executionMode: ExecutionMode;
+  encryptionStatus?: string;
+  
+  // Mandatory Information Sources & Live Search Provenance
+  informationSources?: SearchSource[];
+  searchQueryExecuted?: string;
+  searchEngineUsed?: string;
+  
+  // Why We Gave That Response
+  whyResponse?: WhyResponseRationale;
+  
+  // Pre-Response Validation & Guardrail Checks
+  preResponseValidation?: PreResponseValidation;
+  
+  tokensPrompt: number;
+  tokensCompletion: number;
+  tokensTotal: number;
+  creditsTaken: number;
+  costUsdEquivalent: number;
+  latencyMs: number;
+  timeToFirstTokenMs: number;
+  throughputTokensPerSec: number;
+  finishReason: string;
+  cacheHit: boolean;
+  ledgerTxId?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -65,6 +122,7 @@ export interface Message {
   attachments?: MessageAttachment[];
   feedback?: 'like' | 'dislike' | null;
   error?: string;
+  diagnosis?: MessageDiagnosis;
 }
 
 export interface Conversation {

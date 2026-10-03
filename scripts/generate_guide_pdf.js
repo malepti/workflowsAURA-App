@@ -131,16 +131,17 @@ const sections = [
     step: '04',
     area: 'Chat Workspace',
     title: 'Real-Time Streaming, Code Blocks & Response Controls',
-    see: 'Conversation bubbles, real-time token streaming, active model badge (e.g. "Gemini 2.5 Flash • BYOK"), syntax-highlighted code blocks with Copy & Run Sandbox buttons, and bottom composer.',
+    see: 'Conversation bubbles, real-time token streaming, active model badge (e.g. "Gemini 2.5 Flash • BYOK"), syntax-highlighted code blocks with Copy & Run Sandbox buttons, and the purple "Diagnosis" telemetry button below each response.',
     how: [
       'Stream Output: Responses stream word-by-word with live token count metrics.',
+      'Click Diagnosis: Click the "Diagnosis" button below any response to inspect where it came from (origin server), model used, agent helper involved, tokens consumed, and credits taken.',
       'Stop Generation: Click the red "Stop" button in the composer at any time during generation.',
       'Copy / Run Code: In any code block, click "Copy" or click "Run Sandbox" to execute the code live in the sandbox.',
       'Edit & Resend: Hover over your user message, click "Edit", modify your text, and resend.',
       'Regenerate: Click the circular reload arrow below the AI response to get an alternative answer.',
       'Export Markdown: Click "Export" in the workspace header to save the conversation as a .md file.'
     ],
-    why: 'Provides instant zero-latency reading through real-time streaming, eliminates manual code copy-pasting, and lets you branch conversations easily.'
+    why: 'Provides instant transparency: verify where your data was routed, inspect token efficiency, audit exact credit deductions, and eliminate manual code copy-pasting.'
   },
   {
     step: '05',
