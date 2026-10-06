@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
+from typing import Dict, Any
+
 db_url = settings.DATABASE_URL
 
 # Convert standard postgres URL prefixes to postgresql+asyncpg for async SQLAlchemy
@@ -17,10 +19,11 @@ if is_cloud and "localhost:5432" in db_url:
     print("Cloud deployment detected with localhost DATABASE_URL. Falling back to SQLite.")
     db_url = "sqlite+aiosqlite:///./sql_app.db"
 
-engine_kwargs = {"echo": False, "future": True}
+engine_kwargs: Dict[str, Any] = {"echo": False, "future": True}
 
 if db_url.startswith("postgresql"):
     engine_kwargs.update({"pool_size": 20, "max_overflow": 10})
+
 
 engine = create_async_engine(db_url, **engine_kwargs)
 
