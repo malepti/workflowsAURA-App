@@ -55,6 +55,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
+from fastapi.responses import StreamingResponse, JSONResponse
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0",
@@ -62,6 +64,15 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     lifespan=lifespan
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    print(f"Global Exception: {exc}\n{traceback.format_exc()}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"}
+    )
 
 
 
