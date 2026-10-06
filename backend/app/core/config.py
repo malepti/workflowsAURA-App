@@ -4,7 +4,7 @@ from typing import Optional
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AuraAI — Multi-Model AI Chat Platform"
     API_V1_STR: str = "/api/v1"
-    DATABASE_URL: str = "sqlite+aiosqlite:///./sql_app.db"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres123@localhost:5432/MVAI"
     REDIS_URL: str = "redis://localhost:6379/0"
     SECRET_KEY: str = "auraai-dev-secret-key-32-chars-minimum-needed!!"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days

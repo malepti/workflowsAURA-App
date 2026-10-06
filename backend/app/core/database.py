@@ -3,11 +3,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
-db_url = settings.DATABASE_URL or "sqlite+aiosqlite:///./sql_app.db"
-
-# If postgresql URL points to localhost and we are in production on Render without local postgres, fall back to SQLite
-if "localhost:5432" in db_url or "127.0.0.1:5432" in db_url:
-    db_url = "sqlite+aiosqlite:///./sql_app.db"
+db_url = settings.DATABASE_URL
 
 engine_kwargs = {"echo": False, "future": True}
 
