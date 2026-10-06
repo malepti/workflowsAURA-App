@@ -42,11 +42,13 @@ export const ApiKeyManagerView: React.FC = () => {
     fetchDeveloperKeys();
   }, []);
 
+  const apiBase = import.meta.env.VITE_API_URL || '';
+
   const fetchDeveloperKeys = async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('aura_token');
-      const res = await fetch('http://localhost:8000/api/v1/developer-keys', {
+      const res = await fetch(`${apiBase}/api/v1/developer-keys`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -68,7 +70,7 @@ export const ApiKeyManagerView: React.FC = () => {
 
     try {
       const token = localStorage.getItem('aura_token');
-      const res = await fetch('http://localhost:8000/api/v1/developer-keys', {
+      const res = await fetch(`${apiBase}/api/v1/developer-keys`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +96,7 @@ export const ApiKeyManagerView: React.FC = () => {
 
     try {
       const token = localStorage.getItem('aura_token');
-      const res = await fetch(`http://localhost:8000/api/v1/developer-keys/${id}`, {
+      const res = await fetch(`${apiBase}/api/v1/developer-keys/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -125,7 +127,8 @@ export const ApiKeyManagerView: React.FC = () => {
     setIsByokModalOpen(false);
   };
 
-  const baseUrl = 'http://localhost:8000/v1';
+  const baseUrl = `${apiBase || 'http://localhost:8000'}/v1`;
+
 
   // Compute key monitoring stats
   const activeKeysCount = developerKeys.filter(k => k.isActive).length;
