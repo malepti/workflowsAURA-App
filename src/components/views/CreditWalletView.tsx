@@ -73,11 +73,11 @@ export const CreditWalletView: React.FC = () => {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-extrabold text-slate-900">{user.totalCredits.toLocaleString()}</span>
+            <span className="text-3xl font-extrabold text-slate-900">{(user?.totalCredits ?? 0).toLocaleString()}</span>
             <span className="text-xs text-slate-400 font-medium">credits</span>
           </div>
           <p className="text-[11px] text-slate-500">
-            Approx. <span className="font-semibold text-slate-700">{Math.floor(user.totalCredits / 2)}</span> requests on Gemini / Local models.
+            Approx. <span className="font-semibold text-slate-700">{Math.floor((user?.totalCredits ?? 0) / 2)}</span> requests on Gemini / Local models.
           </p>
         </div>
 
@@ -86,15 +86,15 @@ export const CreditWalletView: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-500">Monthly Quota</span>
             <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 uppercase">
-              {user.plan}
+              {user?.plan || 'free'}
             </span>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-extrabold text-slate-900">{user.monthlyCreditQuota}</span>
+            <span className="text-3xl font-extrabold text-slate-900">{user?.monthlyCreditQuota ?? 250}</span>
             <span className="text-xs text-slate-400 font-medium">credits/month</span>
           </div>
           <p className="text-[11px] text-slate-500">
-            Next renewal on <span className="font-semibold text-slate-700">{user.planRenewalDate}</span>
+            Next renewal on <span className="font-semibold text-slate-700">{user?.planRenewalDate || 'End of month'}</span>
           </p>
         </div>
 
@@ -190,13 +190,15 @@ export const CreditWalletView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {creditTransactions.map((tx) => {
+              {(creditTransactions || []).map((tx) => {
                 const isPositive = tx.amount > 0;
+                const catStr = String(tx.category || (tx as any).type || 'inference');
+                const timeStr = tx.timestamp || (tx as any).date || 'Just now';
                 return (
                   <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{tx.timestamp}</td>
+                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{timeStr}</td>
                     <td className="py-3 px-4">
-                      <span className="font-semibold text-slate-800">{tx.description}</span>
+                      <span className="font-semibold text-slate-800">{tx.description || 'Inference'}</span>
                       {tx.auditReason && (
                         <span className="block text-[10px] text-slate-400">
                           Audit reason: {tx.auditReason}
@@ -205,7 +207,7 @@ export const CreditWalletView: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">
                       <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 uppercase">
-                        {tx.category.replace('_', ' ')}
+                        {catStr.replace('_', ' ')}
                       </span>
                     </td>
                     <td
@@ -216,11 +218,11 @@ export const CreditWalletView: React.FC = () => {
                       {isPositive ? `+${tx.amount}` : tx.amount} cr
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-500">
-                      {tx.balanceAfter} cr
+                      {tx.balanceAfter !== undefined ? tx.balanceAfter : 'N/A'} cr
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                        {tx.status}
+                        {tx.status || 'completed'}
                       </span>
                     </td>
                   </tr>
@@ -230,6 +232,7 @@ export const CreditWalletView: React.FC = () => {
           </table>
         </div>
       </div>
+
 
       {/* Top up modal */}
       {topUpModalOpen && (

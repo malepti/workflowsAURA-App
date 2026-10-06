@@ -18,7 +18,8 @@ import {
   CheckCircle,
   HelpCircle,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  BarChart3
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ExecutionMode } from '../../types';
@@ -38,7 +39,7 @@ export const HomeView: React.FC = () => {
   } = useApp();
 
   const [promptText, setPromptText] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'write' | 'code' | 'image' | 'doc' | 'research'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'write' | 'code' | 'charts' | 'doc' | 'research'>('all');
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [enableCodeRunner, setEnableCodeRunner] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
@@ -54,7 +55,7 @@ export const HomeView: React.FC = () => {
     { id: 'all', label: 'All' },
     { id: 'write', label: 'Write' },
     { id: 'code', label: 'Code' },
-    { id: 'image', label: 'Image Generation' },
+    { id: 'charts', label: 'Charts & Data' },
     { id: 'doc', label: 'Document Analysis' },
     { id: 'research', label: 'Research' }
   ];
@@ -105,11 +106,11 @@ export const HomeView: React.FC = () => {
       action: () => setCurrentView('doc-analysis')
     },
     {
-      id: 'image',
-      name: 'Image Gen',
-      icon: ImageIcon,
+      id: 'charts',
+      name: 'Charts & Data',
+      icon: BarChart3,
       color: 'text-pink-600 bg-pink-50 border-pink-100',
-      action: () => setCurrentView('image-gen')
+      action: () => setCurrentView('charts')
     },
     {
       id: 'code',
@@ -365,8 +366,12 @@ export const HomeView: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="hidden md:inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
                 <span className="font-semibold">{selectedModel.name}</span>
-                <span>•</span>
-                <span>{executionMode === 'byok' ? 'BYOK (0 cr)' : `${selectedModel.creditsPerRequest} cr`}</span>
+                {executionMode === 'byok' && (
+                  <>
+                    <span>•</span>
+                    <span>BYOK (0 cr)</span>
+                  </>
+                )}
               </span>
 
               <button

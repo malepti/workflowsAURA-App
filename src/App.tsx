@@ -16,16 +16,20 @@ import { ApiKeyManagerView } from './components/views/ApiKeyManagerView';
 import { CreditWalletView } from './components/views/CreditWalletView';
 import { SubscriptionView } from './components/views/SubscriptionView';
 import { PluginMarketplaceView } from './components/views/PluginMarketplaceView';
+import { WorkflowBuilderView } from './components/views/WorkflowBuilderView';
 import { CodeAssistantView } from './components/views/CodeAssistantView';
+
 import { DocumentAnalysisView } from './components/views/DocumentAnalysisView';
-import { ImageGenView } from './components/views/ImageGenView';
 import { AnalyticsView } from './components/views/AnalyticsView';
 import { AccountSettingsView } from './components/views/AccountSettingsView';
 import { AdminConsoleView } from './components/views/AdminConsoleView';
 import { UserGuideView } from './components/views/UserGuideView';
+import { AuthView } from './components/views/AuthView';
+import { ChartsView } from './components/views/ChartsView';
+import { Loader2 } from 'lucide-react';
 
 const MainContent: React.FC = () => {
-  const { currentView, startNewChat } = useApp();
+  const { currentView, startNewChat, isAuthenticated, isAppReady } = useApp();
 
   // Keyboard shortcut listener for Cmd/Ctrl+K to start new chat
   useEffect(() => {
@@ -55,12 +59,14 @@ const MainContent: React.FC = () => {
         return <SubscriptionView />;
       case 'plugins':
         return <PluginMarketplaceView />;
+      case 'workflows':
+        return <WorkflowBuilderView />;
       case 'code-assistant':
         return <CodeAssistantView />;
       case 'doc-analysis':
         return <DocumentAnalysisView />;
-      case 'image-gen':
-        return <ImageGenView />;
+      case 'charts':
+        return <ChartsView />;
       case 'analytics':
         return <AnalyticsView />;
       case 'account':
@@ -73,6 +79,23 @@ const MainContent: React.FC = () => {
         return <HomeView />;
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <AuthView />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  if (!isAppReady) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#F8FAFF]">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#F8FAFF]">

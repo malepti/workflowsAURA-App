@@ -1,0 +1,75 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from pydantic import BaseModel
+import secrets
+
+from app.core.database import get_db
+from app.core.redis_client import redis_client
+from app.core.security import get_password_hash, verify_password
+from app.models.all_models import User, CreditAccount
+from app.schemas.all_schemas import UserCreate, UserResponse
+
+router = APIRouter()
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+@router.post("/signup", response_model=UserResponse)
+async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+    # Check if user exists
+    result = await db.execute(select(User).where(User.email == user_in.email))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Email already registered")
+        
+    hashed_pw = get_password_hash(user_in.password)
+    
+    # Create User
+    new_user = User(
+        email=user_in.email,
+        hashed_password=hashed_pw,
+        full_name=user_in.full_name
+    )
+    db.add(new_user)
+    await db.flush() # flush to get new_user.id
+    
+    # Give initial free credits
+    credits_account = CreditAccount(
+        user_id=new_user.id,
+        balance=250
+    )
+    db.add(credits_account)
+    
+    await db.commit()
+    await db.refresh(new_user)
+    
+    return new_user
+
+@router.post("/login", response_model=TokenResponse)
+async def login(credentials: LoginRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == credentials.email))
+    user = result.scalar_one_or_none()
+    
+    if not user or not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+    # Generate Session Token
+    token = secrets.token_urlsafe(32)
+    session_key = f"session:{token}"
+    
+    # Save to Redis (valid for 7 days)
+    await redis_client.set(session_key, user.id, ex=60 * 60 * 24 * 7)
+    
+    return TokenResponse(access_token=token)
+
+@router.post("/logout")
+async def logout(authorization: str = Depends(lambda req: req.headers.get("Authorization", ""))):
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.replace("Bearer ", "")
+        await redis_client.delete(f"session:{token}")
+    return {"message": "Logged out successfully"}

@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Send,
   Square,
@@ -22,6 +24,13 @@ import {
   Coins,
   ArrowRight
 } from 'lucide-react';
+import { SlashCommandMenu } from '../SlashCommandMenu';
+import { ALL_SLASH_COMMANDS } from '../../lib/slashCommands';
+
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell, AreaChart, Area, ScatterChart, Scatter
+} from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { Message, MessageAttachment, MessageDiagnosis } from '../../types';
 import { DiagnosisModal } from '../modals/DiagnosisModal';
@@ -143,12 +152,21 @@ export const ChatView: React.FC = () => {
     if (!inputMessage.trim() && attachments.length === 0) return;
     if (isGenerating) return;
 
-    const text = inputMessage.trim();
+    let text = inputMessage.trim();
+
+    // Check if prompt starts with a slash command (e.g. /brief, /code, /eli5)
+    const matchingCmd = ALL_SLASH_COMMANDS.find((cmd) => text.toLowerCase().startsWith(cmd.command.toLowerCase()));
+    if (matchingCmd) {
+      const userPromptAfterCmd = text.substring(matchingCmd.command.length).trim();
+      text = `[Slash Command: ${matchingCmd.command} (${matchingCmd.name})]\n${matchingCmd.instruction}\n\nUser Query: ${userPromptAfterCmd || matchingCmd.description}`;
+    }
+
     const currentAttachments = [...attachments];
     setInputMessage('');
     setAttachments([]);
     await sendMessage(text, currentAttachments);
   };
+
 
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
@@ -196,80 +214,192 @@ export const ChatView: React.FC = () => {
   };
 
   const hasInsufficientCredits =
-    executionMode === 'platform_managed' && user.totalCredits < selectedModel.creditsPerRequest;
+    executionMode === 'platform_managed' && user.totalCredits <= 0;
 
-  // Custom renderer for code blocks and markdown styling
+  // Custom renderer for code blocks and markdown styling using react-markdown
   const renderMessageContent = (content: string) => {
-    const parts = content.split(/(```[\s\S]*?```)/g);
+    return (
+      <div className="text-sm">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            code(props) {
+              const { children, className, node, ...rest } = props;
+              const match = /language-(\w+)/.exec(className || '');
+              const isInline = !match && !content.includes('\n');
+              
+              if (isInline) {
+                return (
+                  <code {...rest} className="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700 font-mono text-[12px]">
+                    {children}
+                  </code>
+                );
+              }
+              
+              const language = match ? match[1] : 'code';
+              const codeBody = String(children).replace(/\n$/, '');
 
-    return parts.map((part, index) => {
-      if (part.startsWith('```') && part.endsWith('```')) {
-        const lines = part.slice(3, -3).trim().split('\n');
-        const language = lines[0].trim() || 'code';
-        const codeBody = lines.slice(1).join('\n') || lines[0];
+              if (language === 'json_chart') {
+                try {
+                  const chartDef = JSON.parse(codeBody);
+                  const data = chartDef.data || [];
+                  const type = chartDef.type || 'bar';
+                  if (data.length > 0) {
+                    const keys = Object.keys(data[0]).filter(k => typeof data[0][k] === 'number');
+                    const xAxisKey = Object.keys(data[0]).find(k => typeof data[0][k] === 'string') || Object.keys(data[0])[0];
+                    const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+                    
+                    let ChartComponent = null;
+                    if (type === 'bar') {
+                      ChartComponent = (
+                        <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey={xAxisKey} tick={{fontSize: 10}} />
+                          <YAxis tick={{fontSize: 10}} />
+                          <RechartsTooltip />
+                          <Legend />
+                          {keys.map((k, i) => <Bar key={k} dataKey={k} fill={COLORS[i % COLORS.length]} />)}
+                        </BarChart>
+                      );
+                    } else if (type === 'line') {
+                      ChartComponent = (
+                        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey={xAxisKey} tick={{fontSize: 10}} />
+                          <YAxis tick={{fontSize: 10}} />
+                          <RechartsTooltip />
+                          <Legend />
+                          {keys.map((k, i) => <Line type="monotone" key={k} dataKey={k} stroke={COLORS[i % COLORS.length]} strokeWidth={2} />)}
+                        </LineChart>
+                      );
+                    } else if (type === 'pie') {
+                      const dataKey = keys[0];
+                      ChartComponent = (
+                        <PieChart>
+                          <Pie data={data} dataKey={dataKey} nameKey={xAxisKey} cx="50%" cy="50%" outerRadius={80} fill="#8884d8">
+                            {data.map((_: any, i: number) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
+                          </Pie>
+                          <RechartsTooltip />
+                          <Legend />
+                        </PieChart>
+                      );
+                    } else if (type === 'area') {
+                      ChartComponent = (
+                        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey={xAxisKey} tick={{fontSize: 10}} />
+                          <YAxis tick={{fontSize: 10}} />
+                          <RechartsTooltip />
+                          <Legend />
+                          {keys.map((k, i) => <Area type="monotone" key={k} dataKey={k} fill={COLORS[i % COLORS.length]} stroke={COLORS[i % COLORS.length]} />)}
+                        </AreaChart>
+                      );
+                    } else if (type === 'scatter') {
+                      ChartComponent = (
+                        <ScatterChart margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey={xAxisKey} type="category" tick={{fontSize: 10}} />
+                          <YAxis tick={{fontSize: 10}} />
+                          <RechartsTooltip />
+                          <Legend />
+                          {keys.map((k, i) => <Scatter name={k} key={k} data={data} fill={COLORS[i % COLORS.length]} />)}
+                        </ScatterChart>
+                      );
+                    }
+                    
+                    return (
+                      <div className="my-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm w-full h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {ChartComponent as React.ReactElement}
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  // Fallback to normal code block if json fails
+                }
+              }
 
-        return (
-          <div key={index} className="my-3 rounded-xl border border-slate-700 bg-slate-900 text-slate-100 overflow-hidden shadow-md">
-            <div className="flex items-center justify-between bg-slate-800/90 px-3.5 py-1.5 text-xs text-slate-300 font-mono border-b border-slate-700/80">
-              <span className="flex items-center gap-1.5">
-                <Code2 className="h-3.5 w-3.5 text-indigo-400" />
-                {language}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(codeBody);
-                    addToast('Code snippet copied!', 'info');
-                  }}
-                  className="flex items-center gap-1 hover:text-white transition-colors"
-                  title="Copy code"
-                >
-                  <Copy className="h-3 w-3" />
-                  <span>Copy</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView('code-assistant');
-                    addToast('Loaded snippet into Interactive Code Sandbox.', 'info');
-                  }}
-                  className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors"
-                  title="Run code in Sandbox"
-                >
-                  <Terminal className="h-3 w-3" />
-                  <span>Run Sandbox</span>
-                </button>
-              </div>
-            </div>
-            <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed text-indigo-100 bg-slate-950/60">
-              <code>{codeBody}</code>
-            </pre>
-          </div>
-        );
-      }
-
-      // Format basic markdown headers and bold
-      return (
-        <div key={index} className="whitespace-pre-wrap leading-relaxed text-sm space-y-2">
-          {part.split('\n\n').map((paragraph, pIdx) => {
-            if (paragraph.startsWith('### ')) {
               return (
-                <h3 key={pIdx} className="text-base font-bold text-slate-900 mt-2 mb-1">
-                  {paragraph.replace('### ', '')}
-                </h3>
+                <div className="my-3 rounded-xl border border-slate-700 bg-slate-900 text-slate-100 overflow-hidden shadow-md">
+                  <div className="flex items-center justify-between bg-slate-800/90 px-3.5 py-1.5 text-xs text-slate-300 font-mono border-b border-slate-700/80">
+                    <span className="flex items-center gap-1.5">
+                      <Code2 className="h-3.5 w-3.5 text-indigo-400" />
+                      {language}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(codeBody);
+                          addToast('Code snippet copied!', 'info');
+                        }}
+                        className="flex items-center gap-1 hover:text-white transition-colors"
+                        title="Copy code"
+                      >
+                        <Copy className="h-3 w-3" />
+                        <span>Copy</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCurrentView('code-assistant');
+                          addToast('Loaded snippet into Interactive Code Sandbox.', 'info');
+                        }}
+                        className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors"
+                        title="Run code in Sandbox"
+                      >
+                        <Terminal className="h-3 w-3" />
+                        <span>Run Sandbox</span>
+                      </button>
+                    </div>
+                  </div>
+                  <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed text-indigo-100 bg-slate-950/60 m-0">
+                    <code {...rest}>{children}</code>
+                  </pre>
+                </div>
               );
+            },
+            p({ children }) {
+              return <p className="mb-3 leading-relaxed text-slate-700 last:mb-0">{children}</p>;
+            },
+            h3({ children }) {
+              return <h3 className="text-base font-bold text-slate-900 mt-4 mb-2">{children}</h3>;
+            },
+            h2({ children }) {
+              return <h2 className="text-lg font-bold text-slate-900 mt-5 mb-2 border-b border-slate-100 pb-1">{children}</h2>;
+            },
+            ul({ children }) {
+              return <ul className="list-disc pl-5 mb-3 space-y-1.5 text-slate-700">{children}</ul>;
+            },
+            ol({ children }) {
+              return <ol className="list-decimal pl-5 mb-3 space-y-1.5 text-slate-700">{children}</ol>;
+            },
+            li({ children }) {
+              return <li className="pl-1">{children}</li>;
+            },
+            strong({ children }) {
+              return <strong className="font-bold text-slate-900">{children}</strong>;
+            },
+            a({ children, href }) {
+              return <a href={href} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{children}</a>;
+            },
+            table({ children }) {
+              return <div className="overflow-x-auto mb-4 border border-slate-200 rounded-lg"><table className="w-full text-sm text-left text-slate-600">{children}</table></div>;
+            },
+            thead({ children }) {
+              return <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">{children}</thead>;
+            },
+            th({ children }) {
+              return <th className="px-4 py-2.5 font-semibold text-slate-800">{children}</th>;
+            },
+            td({ children }) {
+              return <td className="px-4 py-2.5 border-b border-slate-100 last:border-0">{children}</td>;
             }
-            if (paragraph.startsWith('## ')) {
-              return (
-                <h2 key={pIdx} className="text-lg font-bold text-slate-900 mt-3 mb-1">
-                  {paragraph.replace('## ', '')}
-                </h2>
-              );
-            }
-            return <p key={pIdx}>{paragraph}</p>;
-          })}
-        </div>
-      );
-    });
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   return (
@@ -297,7 +427,7 @@ export const ChatView: React.FC = () => {
               >
                 {executionMode === 'byok'
                   ? 'Your API Key (0 credits)'
-                  : `Platform Credits (${selectedModel.creditsPerRequest} cr/req)`}
+                  : `Platform Credits (${selectedModel.creditsPerRequest} credits / 1M tokens)`}
               </span>
             </div>
           </div>
@@ -331,7 +461,7 @@ export const ChatView: React.FC = () => {
           <div className="flex items-center gap-2">
             <Coins className="h-4 w-4 text-amber-600 shrink-0" />
             <span>
-              <strong>Platform Credits Completed:</strong> You have {user.totalCredits} credits remaining. <strong>{selectedModel.name}</strong> requires {selectedModel.creditsPerRequest} platform credits per query.
+              <strong>Platform Credits Depleted:</strong> You have {user.totalCredits.toFixed(3)} credits remaining. Please top up your account or switch to BYOK mode.
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -642,31 +772,42 @@ export const ChatView: React.FC = () => {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSend} className="relative flex items-center">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-              accept=".pdf,.txt,.doc,.docx,.py,.ts,.js,.json,image/*"
-            />
+          <div className="relative">
+            {inputMessage.startsWith('/') && (
+              <SlashCommandMenu
+                filterText={inputMessage}
+                onSelect={(cmd) => {
+                  setInputMessage(cmd.command + ' ');
+                }}
+                onClose={() => setInputMessage('')}
+              />
+            )}
+            <form onSubmit={handleSend} className="relative flex items-center">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept=".pdf,.txt,.doc,.docx,.py,.ts,.js,.json,image/*"
+              />
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-              title="Attach file (PDF, Code, Image)"
-            >
-              <Paperclip className="h-4 w-4" />
-            </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                title="Attach file (PDF, Code, Image)"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
 
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder={`Message ${selectedModel.name}... (Press Enter to send)`}
-              className="w-full rounded-2xl border border-slate-200 bg-[#F8FAFF] py-3 pl-11 pr-24 text-sm text-[#172554] placeholder-slate-400 transition-all focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100"
-            />
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder={`Message ${selectedModel.name}... (Type / for commands)`}
+                className="w-full rounded-2xl border border-slate-200 bg-[#F8FAFF] py-3 pl-11 pr-24 text-sm text-[#172554] placeholder-slate-400 transition-all focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100"
+              />
+
 
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {isGenerating ? (
@@ -694,8 +835,10 @@ export const ChatView: React.FC = () => {
               )}
             </div>
           </form>
+        </div>
         )}
       </div>
+
 
       {/* Diagnosis Telemetry Modal */}
       <DiagnosisModal

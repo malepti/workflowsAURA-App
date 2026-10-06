@@ -54,7 +54,7 @@ export const ExploreModelsView: React.FC = () => {
     setSelectedModel(model);
     if (model.isLocal) {
       setExecutionMode('platform_managed');
-      addToast(`Selected ${model.name} via local Ollama cluster (${model.creditsPerRequest} cr/req).`, 'info');
+      addToast(`Selected ${model.name} via local Ollama cluster (${model.creditsPerRequest} credits / 1M tokens).`, 'info');
     } else {
       addToast(`Selected ${model.name}.`, 'info');
     }

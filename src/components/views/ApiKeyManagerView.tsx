@@ -1,312 +1,709 @@
-import React, { useState } from 'react';
-import {
-  KeyRound,
-  Plus,
-  ShieldCheck,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  RefreshCw,
-  Trash2,
-  Power,
-  ExternalLink,
-  Lock,
-  Eye,
-  EyeOff,
-  Copy,
-  Info
+import React, { useState, useEffect } from 'react';
+import { 
+  Key, Plus, Trash2, Copy, Check, ShieldCheck, Cpu, Code2, 
+  Terminal, ExternalLink, AlertTriangle, Eye, EyeOff, Lock, CheckCircle2, RefreshCw,
+  Activity, Clock, Layers, ChevronRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { AIProvider } from '../../types';
+
+interface DeveloperKey {
+  id: string;
+  name: string;
+  apiKey?: string;
+  keyMasked: string;
+  isActive: boolean;
+  createdAt: string;
+  lastUsedAt?: string;
+}
 
 export const ApiKeyManagerView: React.FC = () => {
-  const {
-    apiKeys,
-    addApiKey,
-    testApiKey,
-    toggleApiKeyActive,
-    deleteApiKey,
-    addToast
-  } = useApp();
+  const { apiKeys, addApiKey, deleteApiKey, setCurrentView, creditTransactions } = useApp();
+  const [activeTab, setActiveTab] = useState<'byok' | 'developer'>('developer');
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [provider, setProvider] = useState<AIProvider>('openai');
-  const [rawKey, setRawKey] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [testingId, setTestingId] = useState<string | null>(null);
+  // BYOK Modal state
+  const [isByokModalOpen, setIsByokModalOpen] = useState(false);
+  const [byokProvider, setByokProvider] = useState('openai');
+  const [byokKey, setByokKey] = useState('');
+  const [byokName, setByokName] = useState('');
 
-  const handleCreateKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rawKey.trim()) {
-      addToast('Please enter an API key.', 'warning');
-      return;
+  // Developer Key Modal state
+  const [isDevModalOpen, setIsDevModalOpen] = useState(false);
+  const [devKeyName, setDevKeyName] = useState('');
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
+  const [developerKeys, setDeveloperKeys] = useState<DeveloperKey[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Snippet language tab
+  const [snippetTab, setSnippetTab] = useState<'python' | 'node' | 'curl' | 'langchain'>('python');
+  const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
+
+  // Fetch developer keys on mount
+  useEffect(() => {
+    fetchDeveloperKeys();
+  }, []);
+
+  const fetchDeveloperKeys = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('aura_token');
+      const res = await fetch('http://localhost:8000/api/v1/developer-keys', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDeveloperKeys(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch developer keys:', e);
+    } finally {
+      setIsLoading(false);
     }
-
-    await addApiKey(provider, rawKey.trim(), displayName.trim() || undefined);
-    setRawKey('');
-    setDisplayName('');
-    setModalOpen(false);
   };
 
-  const handleTestKey = async (id: string) => {
-    setTestingId(id);
-    await testApiKey(id);
-    setTestingId(null);
+  const handleCreateDeveloperKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!devKeyName.trim()) return;
+
+    try {
+      const token = localStorage.getItem('aura_token');
+      const res = await fetch('http://localhost:8000/api/v1/developer-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: devKeyName })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setNewlyCreatedKey(data.apiKey || null);
+        setDeveloperKeys([data, ...developerKeys]);
+        setDevKeyName('');
+        setIsDevModalOpen(false);
+      }
+    } catch (e) {
+      console.error('Error creating developer key:', e);
+    }
   };
 
-  const providerLinks: Record<string, { url: string; label: string }> = {
-    openai: { url: 'https://platform.openai.com/api-keys', label: 'platform.openai.com' },
-    google: { url: 'https://aistudio.google.com/app/apikey', label: 'aistudio.google.com' },
-    anthropic: { url: 'https://console.anthropic.com/settings/keys', label: 'console.anthropic.com' },
-    ollama: { url: 'https://ollama.com', label: 'ollama.com (Local)' },
-    groq: { url: 'https://console.groq.com/keys', label: 'console.groq.com' }
+  const handleRevokeDeveloperKey = async (id: string) => {
+    if (!confirm('Are you sure you want to revoke this Developer API Key? Any external applications using it will lose access immediately.')) return;
+
+    try {
+      const token = localStorage.getItem('aura_token');
+      const res = await fetch(`http://localhost:8000/api/v1/developer-keys/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        setDeveloperKeys(developerKeys.filter(k => k.id !== id));
+      }
+    } catch (e) {
+      console.error('Error revoking developer key:', e);
+    }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(id);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const handleAddByokKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!byokKey.trim()) return;
+
+    await addApiKey(byokProvider, byokKey, byokName || `${byokProvider.toUpperCase()} Key`);
+    setByokKey('');
+    setByokName('');
+    setIsByokModalOpen(false);
+  };
+
+  const baseUrl = 'http://localhost:8000/v1';
+
+  // Compute key monitoring stats
+  const activeKeysCount = developerKeys.filter(k => k.isActive).length;
+  const lastActiveKey = developerKeys.find(k => k.lastUsedAt);
+
+  const codeSnippets = {
+    python: `import openai
+
+# Connect external Python app to AuraAI Platform Local Ollama Model
+client = openai.OpenAI(
+    base_url="${baseUrl}",
+    api_key="${developerKeys[0]?.keyMasked || 'sk-aura-your-developer-key'}"
+)
+
+response = client.chat.completions.create(
+    model="qwen2.5-coder:32b", # Local Ollama Model
+    messages=[
+        {"role": "system", "content": "You are an AI coding assistant."},
+        {"role": "user", "content": "Write a fast Python binary search implementation."}
+    ],
+    stream=True
+)
+
+for chunk in response:
+    print(chunk.choices[0].delta.content or "", end="")`,
+
+    node: `import OpenAI from 'openai';
+
+// Connect external Node.js app to AuraAI Platform Local Ollama Model
+const openai = new OpenAI({
+  baseURL: '${baseUrl}',
+  apiKey: '${developerKeys[0]?.keyMasked || 'sk-aura-your-developer-key'}',
+});
+
+async function main() {
+  const completion = await openai.chat.completions.create({
+    messages: [{ role: 'user', content: 'Hello from cross-platform Node.js!' }],
+    model: 'qwen2.5-coder:32b',
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();`,
+
+    curl: `curl ${baseUrl}/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${developerKeys[0]?.keyMasked || 'sk-aura-your-developer-key'}" \\
+  -d '{
+    "model": "qwen2.5-coder:32b",
+    "messages": [{"role": "user", "content": "Hello cross-platform local model!"}]
+  }'`,
+
+    langchain: `from langchain_openai import ChatOpenAI
+
+# Connect LangChain agents to Local Ollama via AuraAI Developer Key
+llm = ChatOpenAI(
+    openai_api_base="${baseUrl}",
+    openai_api_key="${developerKeys[0]?.keyMasked || 'sk-aura-your-developer-key'}",
+    model_name="qwen2.5-coder:32b"
+)
+
+response = llm.invoke("Explain microservices architecture in 3 bullet points")
+print(response.content)`
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#F8FAFF] p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-indigo-600 font-semibold text-xs mb-1">
-            <KeyRound className="h-4 w-4" />
-            <span>CREDENTIAL VAULT & ENCRYPTION</span>
-          </div>
-          <h1 className="text-2xl font-bold text-[#172554]">API Key Management (BYOK)</h1>
-          <p className="text-xs text-slate-500">
-            Securely connect your own AI provider keys. When active, requests bypass platform credit charges.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add API Key
-        </button>
-      </div>
-
-      {/* Security & BYOK Explanation Banner matching Section 8 */}
-      <div className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-2xs">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600 shrink-0">
-            <Lock className="h-5 w-5" />
-          </div>
-          <div className="space-y-1 text-xs">
-            <h3 className="font-bold text-slate-900">Zero Credit Deduction Policy & Encryption at Rest</h3>
-            <p className="text-slate-500 leading-relaxed">
-              When using your own provider key (BYOK mode), you pay the provider directly through your account.
-              <strong> AuraAI charges 0 platform credits for provider inference.</strong> All credentials are AES-256 encrypted at rest, masked in the UI, and never transmitted back in raw plaintext.
+    <div className="flex-1 bg-[#F8FAFF] text-slate-800 min-h-screen overflow-y-auto p-6 md:p-8">
+      {/* Header section */}
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+          <div>
+            <div className="flex items-center gap-2 text-indigo-600 text-xs font-semibold uppercase tracking-wider mb-1">
+              <Key className="w-4 h-4" />
+              API Key & Integration Hub
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">API Key Management & Monitoring</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Issue cross-platform Developer Keys to connect external apps (VSCode, LangChain, Python) to your Local Ollama model.
             </p>
           </div>
-        </div>
-      </div>
 
-      {/* API Key Cards Grid matching Section 8 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {apiKeys.map((key) => {
-          const isTesting = testingId === key.id;
-          const link = providerLinks[key.provider] || { url: '#', label: 'Provider Portal' };
-
-          return (
-            <div
-              key={key.id}
-              className={`rounded-2xl border bg-white p-5 shadow-2xs transition-all flex flex-col justify-between ${
-                key.isActive ? 'border-slate-200' : 'border-slate-200/60 opacity-75'
+          {/* Navigation Tabs */}
+          <div className="flex items-center bg-[#131927] p-1.5 rounded-xl border border-gray-800/80 shadow-inner">
+            <button
+              onClick={() => setActiveTab('developer')}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+                activeTab === 'developer'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 font-semibold'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
               }`}
             >
-              <div>
-                {/* Provider Header */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-bold text-xs uppercase">
-                      {key.provider.slice(0, 3)}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900">{key.displayName}</h4>
-                      <span className="text-[11px] text-slate-400 font-medium">
-                        {key.providerName}
-                      </span>
-                    </div>
-                  </div>
+              <Cpu className="w-3.5 h-3.5" />
+              AuraAI Developer Keys
+              <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-1.5 py-0.5 rounded-full border border-indigo-500/30">
+                Platform
+              </span>
+            </button>
 
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        key.isValid
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}
-                    >
-                      {key.isValid ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      {key.isValid ? 'Verified' : 'Invalid'}
-                    </span>
-                  </div>
+            <button
+              onClick={() => setActiveTab('byok')}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+                activeTab === 'byok'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 font-semibold'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              External Keys (BYOK)
+            </button>
+          </div>
+        </div>
+
+        {/* ================= TAB 1: AURA AI DEVELOPER KEYS ================= */}
+        {activeTab === 'developer' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Developer Key Monitoring KPI Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#131825] border border-gray-800/80 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
+                <div className="p-3 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                  <Key className="w-5 h-5" />
                 </div>
-
-                {/* Key Masked Box */}
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 mb-3">
-                  <span className="text-[10px] text-slate-400 font-medium block mb-1">
-                    MASKED KEY IDENTIFIER
-                  </span>
-                  <div className="flex items-center justify-between font-mono text-xs text-slate-700 font-medium">
-                    <span className="truncate">{key.keyMasked}</span>
-                    <Lock className="h-3.5 w-3.5 text-slate-400 shrink-0 ml-2" />
-                  </div>
+                <div>
+                  <div className="text-xs text-gray-400 font-medium">Issued Developer Keys</div>
+                  <div className="text-xl font-bold text-white mt-0.5">{developerKeys.length} Keys</div>
+                  <div className="text-[11px] text-emerald-400 font-medium mt-0.5">{activeKeysCount} Active</div>
                 </div>
+              </div>
 
-                {/* Key Metadata */}
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500 mb-4">
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Last Tested</span>
-                    <span className="font-semibold text-slate-700">{key.lastTestedAt}</span>
+              <div className="bg-[#131825] border border-gray-800/80 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
+                <div className="p-3 bg-emerald-600/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-400 font-medium">Live Key Activity Monitoring</div>
+                  <div className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    Tracking Active API Calls
                   </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Associated Models</span>
-                    <span className="font-semibold text-slate-700">{key.associatedModelCount} models</span>
+                  <div className="text-[11px] text-gray-400 mt-0.5">
+                    {lastActiveKey?.lastUsedAt 
+                      ? `Last API Call: ${new Date(lastActiveKey.lastUsedAt).toLocaleTimeString()}`
+                      : 'Awaiting First API Call'}
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold"
-                >
-                  <span>{link.label}</span>
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => handleTestKey(key.id)}
-                    disabled={isTesting}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                    title="Test connection"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${isTesting ? 'animate-spin' : ''}`} />
-                    <span>Test</span>
-                  </button>
-
-                  <button
-                    onClick={() => toggleApiKeyActive(key.id)}
-                    className={`rounded-lg p-1.5 transition-colors ${
-                      key.isActive
-                        ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
-                        : 'text-slate-400 bg-slate-100 hover:bg-slate-200'
-                    }`}
-                    title={key.isActive ? 'Deactivate key' : 'Activate key'}
-                  >
-                    <Power className="h-3.5 w-3.5" />
-                  </button>
-
-                  <button
-                    onClick={() => deleteApiKey(key.id)}
-                    className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                    title="Purge key"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+              <div className="bg-[#131825] border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-600/20 text-purple-400 rounded-xl border border-purple-500/30">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400 font-medium">Usage & Credit Audit</div>
+                    <div className="text-xs text-gray-300 font-semibold mt-0.5">Token Deduction Logs</div>
+                    <div className="text-[11px] text-indigo-400 mt-0.5">Real-time ledger tracking</div>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setCurrentView('wallet')}
+                  className="p-2 bg-gray-800/80 hover:bg-gray-700 text-gray-300 hover:text-white rounded-xl transition-all flex items-center gap-1 text-xs"
+                >
+                  View Ledger <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Add API Key Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 font-bold">
-                  <KeyRound className="h-4 w-4" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">Add Provider API Key</h3>
+            {/* Info Banner */}
+            <div className="bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-gray-900 border border-indigo-500/30 rounded-2xl p-5 flex items-start gap-4 shadow-xl">
+              <div className="p-3 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  Cross-Platform Access to Local Ollama & Cloud Models
+                  <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-md font-normal border border-emerald-500/30">
+                    OpenAI Compatible Base URL
+                  </span>
+                </h3>
+                <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                  Use your developer keys (<code className="text-indigo-300 bg-indigo-950/80 px-1.5 py-0.5 rounded border border-indigo-800">sk-aura-...</code>) to connect external tools (VSCode, LangChain, Cursor, Python scripts) directly to our local Ollama model (<code className="text-indigo-300">qwen2.5-coder:32b</code>). Every request automatically monitors token usage and updates key activity logs.
+                </p>
               </div>
               <button
-                onClick={() => setModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 text-slate-700"
+                onClick={() => setIsDevModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-500/25 transition-all shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Create Developer Key
+              </button>
+            </div>
+
+            {/* Keys Table Card */}
+            <div className="bg-[#131825] border border-gray-800/80 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 border-b border-gray-800/80 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Key className="w-4 h-4 text-indigo-400" />
+                  Your Active Developer Keys & Monitoring Log ({developerKeys.length})
+                </h2>
+                <button
+                  onClick={fetchDeveloperKeys}
+                  className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-gray-800/50 transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh Key Status
+                </button>
+              </div>
+
+              {developerKeys.length === 0 ? (
+                <div className="p-10 text-center space-y-3">
+                  <div className="w-12 h-12 bg-gray-800/50 rounded-2xl flex items-center justify-center mx-auto text-gray-500">
+                    <Key className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-sm font-medium text-gray-300">No Developer Keys Generated Yet</h4>
+                  <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                    Create a developer key to connect your local applications, scripts, or IDE extensions to our local models.
+                  </p>
+                  <button
+                    onClick={() => setIsDevModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl transition-all shadow-md shadow-indigo-600/20 mt-2"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Create First Key
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-800/60 overflow-x-auto">
+                  {developerKeys.map((key) => (
+                    <div key={key.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-800/20 transition-all">
+                      <div className="flex items-start sm:items-center gap-3">
+                        <div className="p-2.5 bg-indigo-600/10 text-indigo-400 rounded-xl border border-indigo-500/20 shrink-0">
+                          <Code2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-white">{key.name}</span>
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-medium flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              Active & Monitored
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 mt-1">
+                            <code className="font-mono text-indigo-300 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">
+                              {key.keyMasked}
+                            </code>
+                            <span>Created: {new Date(key.createdAt).toLocaleDateString()}</span>
+                            <span className="text-emerald-400 font-medium">
+                              • Last API Call: {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : 'Never used yet'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <button
+                          onClick={() => copyToClipboard(key.keyMasked, key.id)}
+                          className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all"
+                          title="Copy Masked Key"
+                        >
+                          {copiedIndex === key.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => handleRevokeDeveloperKey(key.id)}
+                          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
+                          title="Revoke Key"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quickstart Integration Guide */}
+            <div className="bg-[#131825] border border-gray-800/80 rounded-2xl p-6 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-gray-800/80 pb-4">
+                <div>
+                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                    <Terminal className="w-5 h-5 text-indigo-400" />
+                    Cross-Platform Local Model Connection
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Use your Developer Key with our OpenAI-compatible base URL: <code className="text-indigo-300 font-mono">{baseUrl}</code>
+                  </p>
+                </div>
+              </div>
+
+              {/* Code Snippet Tabs */}
+              <div className="flex gap-2 border-b border-gray-800/60 pb-2">
+                {[
+                  { id: 'python', label: 'Python (OpenAI SDK)' },
+                  { id: 'node', label: 'Node.js (OpenAI SDK)' },
+                  { id: 'curl', label: 'cURL / HTTP' },
+                  { id: 'langchain', label: 'LangChain' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSnippetTab(tab.id as any)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      snippetTab === tab.id
+                        ? 'bg-indigo-600 text-white font-semibold'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Snippet Display */}
+              <div className="relative bg-[#0A0D14] border border-gray-800/80 rounded-xl p-4 font-mono text-xs text-gray-300 overflow-x-auto">
+                <button
+                  onClick={() => copyToClipboard(codeSnippets[snippetTab], snippetTab)}
+                  className="absolute top-3 right-3 p-1.5 bg-gray-800/80 hover:bg-gray-700 text-gray-300 rounded-md transition-all flex items-center gap-1 text-[11px]"
+                >
+                  {copiedIndex === snippetTab ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedIndex === snippetTab ? 'Copied' : 'Copy Code'}
+                </button>
+                <pre className="pr-20 leading-relaxed">{codeSnippets[snippetTab]}</pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB 2: BYOK (BRING YOUR OWN KEY) ================= */}
+        {activeTab === 'byok' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Zero Credit Policy Header Card */}
+            <div className="bg-gradient-to-r from-emerald-950/30 via-teal-950/20 to-gray-900 border border-emerald-500/30 rounded-2xl p-5 flex items-start gap-4 shadow-xl">
+              <div className="p-3 bg-emerald-600/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-white">
+                  Zero Credit Deduction Policy & Encryption at Rest
+                </h3>
+                <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                  When using your own provider key (BYOK mode), requests route directly to providers (OpenAI, Gemini, Anthropic). AuraAI charges <strong className="text-emerald-400">0 platform credits</strong> for BYOK inference. All credentials are AES-256 encrypted at rest and masked in the UI.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsByokModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/25 transition-all shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Add Provider Key
+              </button>
+            </div>
+
+            {/* BYOK Keys Table */}
+            <div className="bg-[#131825] border border-gray-800/80 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 border-b border-gray-800/80 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-emerald-400" />
+                  Your Connected Provider Credentials ({apiKeys.length})
+                </h2>
+              </div>
+
+              {apiKeys.length === 0 ? (
+                <div className="p-10 text-center space-y-3">
+                  <div className="w-12 h-12 bg-gray-800/50 rounded-2xl flex items-center justify-center mx-auto text-gray-500">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-sm font-medium text-gray-300">No External Provider Keys Added</h4>
+                  <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                    Add your personal OpenAI, Gemini, or Anthropic keys to use cloud models without consuming platform credits.
+                  </p>
+                  <button
+                    onClick={() => setIsByokModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-xl transition-all shadow-md shadow-emerald-600/20 mt-2"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Provider Key
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-800/60">
+                  {apiKeys.map((key) => (
+                    <div key={key.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-800/20 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-emerald-600/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                          <Lock className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-white">{key.displayName}</span>
+                            <span className="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full uppercase tracking-wider border border-gray-700">
+                              {key.provider}
+                            </span>
+                          </div>
+                          <code className="font-mono text-xs text-gray-400 mt-1 block">
+                            {key.keyMasked}
+                          </code>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => deleteApiKey(key.id)}
+                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
+                        title="Remove Key"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ================= MODAL 1: NEWLY CREATED DEVELOPER KEY POPUP ================= */}
+      {newlyCreatedKey && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#131825] border border-indigo-500/40 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center gap-3 text-emerald-400">
+              <div className="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Developer API Key Created!</h3>
+                <p className="text-xs text-gray-400">Please copy and save your secret key now.</p>
+              </div>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-start gap-3 text-amber-300 text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                For security reasons, this raw API key will <strong>never be shown again</strong>. Store it securely in your environment variables.
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-gray-400 font-medium">Secret Key</label>
+              <div className="flex items-center gap-2 bg-[#0A0D14] border border-indigo-500/30 rounded-xl p-3 font-mono text-xs text-indigo-300 select-all">
+                <span className="flex-1 break-all">{newlyCreatedKey}</span>
+                <button
+                  onClick={() => copyToClipboard(newlyCreatedKey, 'new-key')}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all flex items-center gap-1 shrink-0 text-xs font-sans font-semibold"
+                >
+                  {copiedIndex === 'new-key' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedIndex === 'new-key' ? 'Copied!' : 'Copy Key'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setNewlyCreatedKey(null)}
+              className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-xl transition-all"
+            >
+              I Have Saved My Key
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL 2: CREATE DEVELOPER KEY FORM ================= */}
+      {isDevModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <form onSubmit={handleCreateDeveloperKey} className="bg-[#131825] border border-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-indigo-400" />
+                Generate AuraAI Developer Key
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsDevModalOpen(false)}
+                className="text-gray-400 hover:text-white text-sm"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateKey} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Select Provider
-                </label>
-                <select
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value as AIProvider)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-indigo-400 focus:outline-none"
-                >
-                  <option value="openai">OpenAI (GPT-4o, o3-mini)</option>
-                  <option value="google">Google Gemini (Gemini 2.5 Flash / Pro)</option>
-                  <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
-                  <option value="groq">Groq (Llama, Mistral Ultra-Fast)</option>
-                  <option value="ollama">Ollama (Custom Host Endpoint)</option>
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-gray-300 font-medium">Key Description / Name</label>
+              <input
+                type="text"
+                placeholder="e.g. VSCode Extension, Python Server, Cursor IDE"
+                value={devKeyName}
+                onChange={(e) => setDevKeyName(e.target.value)}
+                required
+                className="w-full bg-[#0A0D14] border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-all"
+              />
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Display Label (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="e.g. My Production OpenAI Key"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:border-indigo-400 focus:outline-none"
-                />
-              </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsDevModalOpen(false)}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-indigo-600/20"
+              >
+                Generate Key
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  API Key Secret
-                </label>
-                <input
-                  type="password"
-                  value={rawKey}
-                  onChange={(e) => setRawKey(e.target.value)}
-                  placeholder="Paste sk-..., AIza..., or endpoint URL"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono text-slate-800 focus:border-indigo-400 focus:outline-none"
-                />
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Obtain keys exclusively from official provider dashboards.
-                </p>
-              </div>
+      {/* ================= MODAL 3: ADD BYOK PROVIDER KEY FORM ================= */}
+      {isByokModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <form onSubmit={handleAddByokKey} className="bg-[#131825] border border-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Lock className="w-4 h-4 text-emerald-400" />
+                Add Provider Key (BYOK)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsByokModalOpen(false)}
+                className="text-gray-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
 
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-100 flex items-start gap-2 text-[11px] text-slate-500">
-                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>
-                  Encrypted using client-side ephemeral exchange & server-side AES-GCM. We never log or expose raw keys.
-                </span>
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-gray-300 font-medium">Provider</label>
+              <select
+                value={byokProvider}
+                onChange={(e) => setByokProvider(e.target.value)}
+                className="w-full bg-[#0A0D14] border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all"
+              >
+                <option value="openai">OpenAI (GPT-4o, o1)</option>
+                <option value="google">Google Gemini (Gemini 2.5 Flash, Pro)</option>
+                <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+              </select>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-indigo-700"
-                >
-                  Save & Validate Key
-                </button>
-              </div>
-            </form>
-          </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-gray-300 font-medium">Key Name / Label (Optional)</label>
+              <input
+                type="text"
+                placeholder="e.g. My Personal OpenAI Key"
+                value={byokName}
+                onChange={(e) => setByokName(e.target.value)}
+                className="w-full bg-[#0A0D14] border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition-all"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-gray-300 font-medium">API Secret Key</label>
+              <input
+                type="password"
+                placeholder="sk-..."
+                value={byokKey}
+                onChange={(e) => setByokKey(e.target.value)}
+                required
+                className="w-full bg-[#0A0D14] border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition-all font-mono"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsByokModalOpen(false)}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-emerald-600/20"
+              >
+                Save Key
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

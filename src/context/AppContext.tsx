@@ -31,10 +31,11 @@ export type AppView =
   | 'home'
   | 'chat'
   | 'explore'
-  | 'image-gen'
   | 'code-assistant'
   | 'doc-analysis'
+  | 'charts'
   | 'plugins'
+  | 'workflows'
   | 'api-keys'
   | 'wallet'
   | 'subscription'
@@ -43,6 +44,7 @@ export type AppView =
   | 'admin'
   | 'user-guide';
 
+
 interface Toast {
   id: string;
   type: 'success' | 'error' | 'info' | 'warning';
@@ -50,6 +52,10 @@ interface Toast {
 }
 
 interface AppContextType {
+  isAuthenticated: boolean;
+  authToken: string | null;
+  login: (token: string, userData: Partial<UserProfile>) => void;
+  logout: () => void;
   user: UserProfile;
   setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
   currentView: AppView;
@@ -113,22 +119,23 @@ interface AppContextType {
   updateModelPricing: (modelId: string, creditsPerRequest: number, isOnline: boolean) => void;
   adminGrantCreditsToUser: (credits: number, reason: string) => void;
   toggleAdminRole: () => void;
+
+  isAppReady: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [authToken, setAuthToken] = useState<string | null>(() => localStorage.getItem('aura_token'));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!authToken);
+
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('aura_user');
     return saved ? JSON.parse(saved) : INITIAL_USER;
   });
 
   const [currentView, setCurrentView] = useState<AppView>('home');
-  const [models, setModels] = useState<AIModel[]>(() => {
-    const saved = localStorage.getItem('aura_models');
-    return saved ? JSON.parse(saved) : INITIAL_MODELS;
-  });
-
+  const [models, setModels] = useState<AIModel[]>(INITIAL_MODELS);
   const [selectedModel, setSelectedModel] = useState<AIModel>(models[0]);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('byok');
   
@@ -156,6 +163,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [sessions, setSessions] = useState<UserSession[]>(INITIAL_SESSIONS);
   const [adminStats, setAdminStats] = useState<AdminStats>(INITIAL_ADMIN_STATS);
+  
+  const [isAppReady, setIsAppReady] = useState<boolean>(!isAuthenticated);
+  
+  useEffect(() => {
+    let mounted = true;
+    if (isAuthenticated && authToken) {
+      setIsAppReady(false);
+      fetch('/api/v1/sync', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!mounted) return;
+        if (data.user) setUser(data.user);
+        if (data.models && data.models.length > 0) {
+          setModels(data.models);
+          setSelectedModel(data.models[0]);
+        }
+        if (data.conversations) setConversations(data.conversations);
+        if (data.apiKeys) setApiKeys(data.apiKeys);
+        if (data.creditTransactions) setCreditTransactions(data.creditTransactions);
+        setIsAppReady(true);
+      })
+      .catch(err => {
+        console.error('Failed to sync app state:', err);
+        if (mounted) setIsAppReady(true);
+      });
+    } else {
+      setIsAppReady(true);
+    }
+    return () => { mounted = false; };
+  }, [isAuthenticated, authToken]);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
@@ -178,6 +218,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('aura_keys', JSON.stringify(apiKeys));
   }, [apiKeys]);
+
+  const login = (token: string, userData: Partial<UserProfile>) => {
+    setAuthToken(token);
+    setIsAuthenticated(true);
+    localStorage.setItem('aura_token', token);
+    setUser(prev => ({ ...prev, ...userData }));
+  };
+
+  const logout = () => {
+    setAuthToken(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('aura_token');
+    setCurrentView('home');
+    addToast('Logged out successfully', 'info');
+  };
 
   const addToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -222,7 +277,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentView('chat');
   };
 
-  const deductCredits = (amount: number, description: string, modelId?: string): boolean => {
+  const deductCredits = (amount: number, description: string, modelId?: string, persistToBackend = true): boolean => {
     if (user.totalCredits < amount) {
       addToast(`Insufficient credits! Required: ${amount}, Available: ${user.totalCredits}`, 'error');
       return false;
@@ -242,6 +297,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setCreditTransactions((prev) => [tx, ...prev]);
+
+    if (persistToBackend && authToken) {
+      fetch('/api/v1/credits/deduct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ amount, description, modelId: modelId || selectedModel.id })
+      }).catch(console.error);
+    }
+
     return true;
   };
 
@@ -307,9 +374,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ) => {
     // Check execution mode & credits
     if (executionMode === 'platform_managed') {
-      const requiredCredits = selectedModel.creditsPerRequest;
-      if (user.totalCredits < requiredCredits) {
-        addToast(`Insufficient platform credits! You need ${requiredCredits} credits.`, 'warning');
+      if (user.totalCredits <= 0) {
+        addToast(`Insufficient platform credits! You need a positive balance to continue.`, 'warning');
         return;
       }
     } else {
@@ -360,10 +426,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const controller = new AbortController();
     setAbortController(controller);
 
-    // If platform_managed, deduct credits
-    if (executionMode === 'platform_managed') {
-      deductCredits(selectedModel.creditsPerRequest, `Inference: ${selectedModel.name}`, selectedModel.id);
-    }
+    // We will calculate and deduct fractional credits at the end based on tokens used.
 
     try {
       let currentOutput = '';
@@ -376,9 +439,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const response = await fetch('/api/v1/chat/stream', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
           body: JSON.stringify({
             prompt: content,
+            conversationId: convId,
             modelId: selectedModel.id,
             executionMode,
             enableWebSearch: true,
@@ -649,6 +716,20 @@ Here are the key findings and details for your query:
         ]
       };
 
+      // Calculate tokens exactly
+      let fractionalCost = 0;
+      if (executionMode === 'platform_managed' && !controller.signal.aborted) {
+        fractionalCost = (finalTotalTokens / 1000000) * selectedModel.creditsPerRequest;
+        if (fractionalCost < 0.01) fractionalCost = 0.01;
+        
+        deductCredits(
+          parseFloat(fractionalCost.toFixed(4)), 
+          `Inference: ${selectedModel.name} (${finalTotalTokens} tokens)`, 
+          selectedModel.id,
+          false
+        );
+      }
+
       const messageDiagnosis: MessageDiagnosis = {
         providerOrigin: selectedModel.isLocal
           ? 'Self-Hosted Ollama Cluster (Node 01 • NVLink GPU Cluster)'
@@ -677,7 +758,7 @@ Here are the key findings and details for your query:
         tokensPrompt: finalPromptTokens,
         tokensCompletion: finalCompletionTokens,
         tokensTotal: finalTotalTokens,
-        creditsTaken: executionMode === 'platform_managed' ? selectedModel.creditsPerRequest : 0,
+        creditsTaken: executionMode === 'platform_managed' ? parseFloat(fractionalCost.toFixed(4)) : 0,
         costUsdEquivalent: (finalPromptTokens * 0.00000015) + (finalCompletionTokens * 0.0000006),
         latencyMs: Math.max(180, selectedModel.latencyMs + Math.floor(Math.random() * 45)),
         timeToFirstTokenMs: Math.max(45, Math.floor(selectedModel.latencyMs * 0.35)),
@@ -733,7 +814,7 @@ Here are the key findings and details for your query:
     }
 
     // Check if platform credits are exhausted
-    if (executionMode === 'platform_managed' && user.totalCredits < selectedModel.creditsPerRequest) {
+    if (executionMode === 'platform_managed' && user.totalCredits <= 0) {
       const userMsg: Message = {
         id: `msg_user_${Date.now()}`,
         role: 'user',
@@ -948,6 +1029,11 @@ Here are the key findings and details for your query:
   return (
     <AppContext.Provider
       value={{
+        isAuthenticated,
+        authToken,
+        login,
+        logout,
+        isAppReady,
         user,
         setUser,
         currentView,

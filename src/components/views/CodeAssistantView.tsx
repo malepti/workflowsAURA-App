@@ -15,7 +15,7 @@ import { useApp } from '../../context/AppContext';
 
 export const CodeAssistantView: React.FC = () => {
   const { selectedModel, startNewChat, addToast, deductCredits, executionMode } = useApp();
-  const [language, setLanguage] = useState<'python' | 'typescript' | 'sql'>('python');
+  const [language, setLanguage] = useState<'python' | 'typescript' | 'sql' | 'java' | 'c' | 'csharp'>('python');
   const [code, setCode] = useState<string>(`# AuraAI Sandboxed Python Code Execution
 import math
 import time
@@ -40,35 +40,54 @@ print(result)
   const [isRunning, setIsRunning] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const handleRun = () => {
+  const handleLanguageChange = (newLang: any) => {
+    setLanguage(newLang);
+    if (newLang === 'java') {
+      setCode(`public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello from Java!");\n    }\n}`);
+    } else if (newLang === 'c') {
+      setCode(`#include <stdio.h>\n\nint main() {\n    printf("Hello from C!\\n");\n    return 0;\n}`);
+    } else if (newLang === 'csharp') {
+      setCode(`using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello from C#!");\n    }\n}`);
+    } else if (newLang === 'python') {
+      setCode(`print("Hello from Python!")`);
+    } else if (newLang === 'typescript') {
+      setCode(`console.log("Hello from TypeScript!");`);
+    } else if (newLang === 'sql') {
+      setCode(`SELECT * FROM users LIMIT 5;`);
+    }
+  };
+
+  const handleRun = async () => {
     setIsRunning(true);
-    setConsoleOutput('Executing in isolated sandbox container...');
+    setConsoleOutput('Executing in backend runtime container...');
 
     // If platform managed, small fee
     if (executionMode === 'platform_managed') {
       deductCredits(1, 'Code Sandbox Execution');
     }
 
-    setTimeout(() => {
-      setIsRunning(false);
-      if (language === 'python') {
-        setConsoleOutput(`[SANDBOX RUNTIME: Python 3.12.2]
-Computed 15 Fibonacci numbers in 0.042ms:
-[0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]
-
-Process finished with exit code 0 (Memory: 14.2 MB)`);
-      } else if (language === 'typescript') {
-        setConsoleOutput(`[SANDBOX RUNTIME: Node v22.14.0]
-Compiled successfully without TypeScript errors.
-Execution completed in 18ms.
-Output: [ { status: 'success', activeNodes: 4 } ]`);
+    try {
+      const response = await fetch('/api/v1/code/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language, code })
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        setConsoleOutput(`[RUNTIME ERROR]\n${data.output}`);
+        addToast('Execution failed.', 'error');
       } else {
-        setConsoleOutput(`[SANDBOX RUNTIME: PostgreSQL 16]
-Query returned 5 rows in 4.1ms.
-Plan: Index Scan using users_pkey on users (cost=0.28..8.29 rows=1)`);
+        setConsoleOutput(`[SANDBOX RUNTIME: ${language.toUpperCase()}]\n\n${data.output}`);
+        addToast('Code executed successfully.', 'success');
       }
-      addToast('Code executed successfully in sandbox.', 'success');
-    }, 700);
+    } catch (error: any) {
+      setConsoleOutput(`[SYSTEM ERROR]\nFailed to connect to execution server: ${error.message}`);
+      addToast('Network error during execution.', 'error');
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handleCopy = () => {
@@ -102,11 +121,14 @@ Plan: Index Scan using users_pkey on users (cost=0.28..8.29 rows=1)`);
         <div className="flex items-center gap-2">
           <select
             value={language}
-            onChange={(e) => setLanguage(e.target.value as any)}
+            onChange={(e) => handleLanguageChange(e.target.value)}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-indigo-400 focus:outline-none shadow-2xs"
           >
             <option value="python">Python 3.12</option>
             <option value="typescript">TypeScript 5.4</option>
+            <option value="java">Java 21</option>
+            <option value="c">C (GCC)</option>
+            <option value="csharp">C# (.NET 8)</option>
             <option value="sql">PostgreSQL 16</option>
           </select>
 

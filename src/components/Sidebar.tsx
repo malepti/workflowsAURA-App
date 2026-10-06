@@ -22,13 +22,17 @@ import {
   ChevronRight,
   Sparkles,
   Zap,
-  BookOpen
+  BookOpen,
+  LogOut,
+  GitFork
 } from 'lucide-react';
+
 import { useApp, AppView } from '../context/AppContext';
 
 export const Sidebar: React.FC = () => {
   const {
     user,
+    logout,
     currentView,
     setCurrentView,
     conversations,
@@ -55,7 +59,7 @@ export const Sidebar: React.FC = () => {
   );
 
   const pinnedChats = filteredConversations.filter((c) => c.isPinned);
-  const todayChats = filteredConversations.filter((c) => !c.isPinned && c.category === 'today');
+  const todayChats = filteredConversations.filter((c) => !c.isPinned && (c.category === 'today' || !c.category));
   const yesterdayChats = filteredConversations.filter((c) => !c.isPinned && c.category === 'yesterday');
   const previousChats = filteredConversations.filter(
     (c) => !c.isPinned && (c.category === 'previous_7_days' || c.category === 'older')
@@ -78,11 +82,13 @@ export const Sidebar: React.FC = () => {
   const navItems: { view: AppView; label: string; icon: any; badge?: string }[] = [
     { view: 'home', label: 'Home', icon: Home },
     { view: 'explore', label: 'Explore Models', icon: Compass },
-    { view: 'image-gen', label: 'Image Generation', icon: ImageIcon },
     { view: 'code-assistant', label: 'Code Assistant', icon: Code2 },
     { view: 'doc-analysis', label: 'Document Analysis', icon: FileText },
+    { view: 'charts', label: 'Charts & Data', icon: BarChart3 },
     { view: 'plugins', label: 'Plugin Marketplace', icon: Boxes },
+    { view: 'workflows', label: 'workflowsAURA', icon: GitFork, badge: 'NEW' },
     { view: 'api-keys', label: 'API Keys (BYOK)', icon: KeyRound },
+
     { view: 'wallet', label: 'Credit Wallet', icon: Wallet },
     { view: 'subscription', label: 'Subscription Plans', icon: CreditCard },
     { view: 'analytics', label: 'Usage Analytics', icon: BarChart3 },
@@ -377,7 +383,13 @@ export const Sidebar: React.FC = () => {
               </div>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+          <button 
+            onClick={(e) => { e.stopPropagation(); logout(); }}
+            className="p-1.5 text-slate-400 hover:text-rose-500 rounded-md transition-colors shrink-0 hover:bg-rose-50"
+            title="Log out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>

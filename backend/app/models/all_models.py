@@ -28,6 +28,20 @@ class User(Base):
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
     credit_account = relationship("CreditAccount", uselist=False, back_populates="user", cascade="all, delete-orphan")
     subscriptions = relationship("UserSubscription", back_populates="user", cascade="all, delete-orphan")
+    generated_images = relationship("GeneratedImage", back_populates="user", cascade="all, delete-orphan")
+    developer_api_keys = relationship("DeveloperApiKey", back_populates="user", cascade="all, delete-orphan")
+
+class GeneratedImage(Base):
+    __tablename__ = "generated_images"
+
+    id = Column(String(64), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    url = Column(String(2048), nullable=False)
+    prompt = Column(Text, nullable=False)
+    aspect_ratio = Column(String(16), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="generated_images")
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
@@ -131,7 +145,7 @@ class CreditAccount(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    balance = Column(Integer, default=250, nullable=False)
+    balance = Column(Float, default=250.0, nullable=False)
     version = Column(Integer, default=1, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -146,10 +160,10 @@ class CreditLedgerEntry(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    amount = Column(Integer, nullable=False) # Negative for debit, positive for grant
+    amount = Column(Float, nullable=False) # Negative for debit, positive for grant
     category = Column(String(64), nullable=False) # 'inference', 'image_gen', 'top_up', 'admin_grant'
     model_id = Column(String(64), nullable=True)
-    balance_after = Column(Integer, nullable=False)
+    balance_after = Column(Float, nullable=False)
     idempotency_key = Column(String(128), unique=True, nullable=True)
     audit_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -179,7 +193,7 @@ class Message(Base):
     content = Column(Text, nullable=False)
     model_used = Column(String(64), nullable=True)
     execution_mode = Column(String(32), nullable=True)
-    credits_consumed = Column(Integer, default=0)
+    credits_consumed = Column(Float, default=0.0)
     tokens_prompt = Column(Integer, default=0)
     tokens_completion = Column(Integer, default=0)
     feedback = Column(String(16), nullable=True)
@@ -209,3 +223,18 @@ class AuditLog(Base):
     target = Column(String(255), nullable=True)
     details = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class DeveloperApiKey(Base):
+    __tablename__ = "developer_api_keys"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(128), nullable=False)
+    api_key = Column(String(128), unique=True, nullable=False, index=True)
+    key_masked = Column(String(64), nullable=False)
+    is_active = Column(Boolean, default=True)
+    last_used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="developer_api_keys")
+
