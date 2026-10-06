@@ -102,6 +102,20 @@ async def stream_chat_response(
             'The JSON object MUST have a "type" (one of: "bar", "line", "pie", "scatter", "area") and "data" (an array of objects). '
             'Example:\n```json_chart\n{"type": "bar", "data": [{"name": "2000s", "population": 6000000000}, {"name": "2010s", "population": 7000000000}]}\n```\n\n'
         )
+        
+        # Live Web Search Grounding
+        from app.services.web_search import should_trigger_search, perform_web_search
+        needs_search = should_trigger_search(request.prompt, request.enableWebSearch)
+        if needs_search:
+            search_results = await perform_web_search(request.prompt)
+            if search_results:
+                system_instruction += (
+                    f"\n\n[LIVE WEB SEARCH DATA RETRIEVED AT {time.strftime('%Y-%m-%d %H:%M:%S UTC')}]:\n"
+                    f"{search_results}\n\n"
+                    "INSTRUCTION: Use the above live web search data to provide a detailed, accurate response to the user's prompt. "
+                    "Do NOT claim that you lack real-time access when search data is provided above.\n"
+                )
+
         augmented_prompt = system_instruction + "User Prompt: " + request.prompt
 
         try:
@@ -134,9 +148,14 @@ async def stream_chat_response(
                 else:
                     client = genai.Client(api_key=settings.GEMINI_API_KEY)
                     try:
+                        from google.genai import types
+                        config = None
+                        if needs_search:
+                            config = types.GenerateContentConfig(tools=[{"google_search": {}}])
                         response = await client.aio.models.generate_content_stream(
                             model=request.modelId,
                             contents=augmented_prompt,
+                            config=config
                         )
                         async for chunk in response:
                             text = chunk.text
