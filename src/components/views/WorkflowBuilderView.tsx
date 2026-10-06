@@ -573,56 +573,102 @@ export const WorkflowBuilderView: React.FC = () => {
           </div>
         </div>
 
-        {viewMode === 'embedded_langflow' ? (
-          /* Live Embedded LangFlow Microservice View */
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col flex-1 min-h-[680px]">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 pb-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Server className="w-5 h-5 text-indigo-600 animate-pulse" />
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    Official LangFlow Studio Microservice
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-mono font-medium">
-                      Status: Active (Backend :7860 | UI :3001)
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Running live cloned LangFlow repository connected directly to workflowsAURA microservice proxy.
-                  </p>
+        {viewMode === 'embedded_langflow' ? (() => {
+          const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+          const rawLangflowUrl = import.meta.env.VITE_LANGFLOW_URL;
+          const isValidRemoteLangflow = rawLangflowUrl && !rawLangflowUrl.includes('workflowsaura-langflow-ui.vercel.app');
+          const activeLangflowUrl = isLocalhost ? "http://localhost:3001" : (isValidRemoteLangflow ? rawLangflowUrl : null);
+
+          return (
+            /* Live Embedded LangFlow Microservice View */
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col flex-1 min-h-[680px]">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 pb-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <Server className="w-5 h-5 text-indigo-600 animate-pulse" />
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      Official LangFlow Studio Microservice
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-mono font-medium">
+                        {isLocalhost ? 'Status: Active (Backend :7860 | UI :3001)' : 'Status: Production Cloud Mode'}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {isLocalhost
+                        ? 'Running live cloned LangFlow repository connected directly to workflowsAURA microservice proxy.'
+                        : 'Connected to workflowsAURA production orchestration network.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={activeLangflowUrl || "http://localhost:3001"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                    Open in New Tab
+                  </a>
+                  <button
+                    onClick={() => setViewMode('builder')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-all border border-indigo-200"
+                  >
+                    <GitFork className="w-3.5 h-3.5" />
+                    Switch to workflowsAURA Canvas
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <a
-                  href={import.meta.env.VITE_LANGFLOW_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? "http://localhost:3001" : "http://localhost:3001")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all"
-                >
-                  <Globe className="w-3.5 h-3.5 text-indigo-600" />
-                  Open in New Tab
-                </a>
-                <button
-                  onClick={() => setViewMode('builder')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-all border border-indigo-200"
-                >
-                  <GitFork className="w-3.5 h-3.5" />
-                  Switch to workflowsAURA Canvas
-                </button>
+              <div className="flex-1 w-full h-full min-h-[620px] rounded-xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50 relative flex items-center justify-center">
+                {activeLangflowUrl ? (
+                  <iframe
+                    src={activeLangflowUrl}
+                    title="LangFlow Studio Microservice"
+                    className="w-full h-full min-h-[620px] border-0"
+                  />
+                ) : (
+                  <div className="max-w-xl text-center p-8 bg-white border border-slate-200 rounded-2xl shadow-sm my-auto">
+                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100">
+                      <Server className="w-7 h-7 text-indigo-600" />
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-900 mb-2">
+                      LangFlow Cloud Microservice Setup
+                    </h4>
+                    <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+                      You are viewing the production version on Vercel HTTPS. Modern web browsers block unencrypted local HTTP (<code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-indigo-600">http://localhost:3001</code>) inside secure HTTPS frames due to Mixed Content security rules.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <button
+                        onClick={() => setViewMode('builder')}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2"
+                      >
+                        <GitFork className="w-4 h-4" />
+                        Switch to Native workflowsAURA 2D Canvas
+                      </button>
+                      <a
+                        href="http://localhost:3001"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200"
+                      >
+                        <Globe className="w-4 h-4 text-indigo-600" />
+                        Open Local LangFlow (:3001)
+                      </a>
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-center gap-1">
+                      <span>💡 To embed cloud LangFlow, set</span>
+                      <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">VITE_LANGFLOW_URL</code>
+                      <span>in Vercel Project Settings.</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-
-
-            <div className="flex-1 w-full h-full min-h-[620px] rounded-xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50 relative">
-              <iframe
-                src={import.meta.env.VITE_LANGFLOW_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? "http://localhost:3001" : "http://localhost:3001")}
-                title="LangFlow Studio Microservice"
-                className="w-full h-full min-h-[620px] border-0"
-              />
-            </div>
-          </div>
-
-        ) : (
+          );
+        })() : (
         /* Main Canvas & Inspector Split View */
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-[500px]">
           {/* Visual Canvas Area (3 Cols) */}
