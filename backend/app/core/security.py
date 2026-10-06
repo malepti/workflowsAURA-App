@@ -1,18 +1,33 @@
 import base64
 import os
-from passlib.context import CryptContext
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from app.core.config import settings
+import hashlib
+import secrets
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
+def get_password_hash(password: str) -> str:
+    salt = secrets.token_bytes(16)
+    hashed = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    return "pbkdf2_sha256$100000$" + salt.hex() + "$" + hashed.hex()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not plain_password or not hashed_password:
         return False
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    try:
+        if hashed_password.startswith("pbkdf2_sha256$"):
+            parts = hashed_password.split("$")
+            if len(parts) != 4:
+                return False
+            iterations = int(parts[1])
+            salt = bytes.fromhex(parts[2])
+            expected_hash = bytes.fromhex(parts[3])
+            computed_hash = hashlib.pbkdf2_hmac('sha256', plain_password.encode('utf-8'), salt, iterations)
+            return secrets.compare_digest(computed_hash, expected_hash)
+        else:
+            from passlib.context import CryptContext
+            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+            return pwd_context.verify(plain_password[:72], hashed_password)
+    except Exception as e:
+        print(f"Password verification error: {e}")
+        return False
 
 def encrypt_key(raw_key: str) -> str:
     """Encrypt user API keys with AES-256-GCM before saving to database."""
