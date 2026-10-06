@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from app.core.database import get_db
 from app.core.redis_client import redis_client
 from app.models.all_models import User, DeveloperApiKey, CreditAccount
@@ -40,7 +40,7 @@ async def get_current_user(
                 detail="Invalid or revoked AuraAI Developer API key"
             )
         
-        dev_key.last_used_at = datetime.utcnow()
+        dev_key.last_used_at = datetime.now(timezone.utc)
         await db.commit()
 
         user_result = await db.execute(select(User).where(User.id == dev_key.user_id))
