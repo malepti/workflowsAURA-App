@@ -209,14 +209,16 @@ async def stream_chat_response(
         db.add(asst_msg)
         
         # 5. Deduct Credits securely
-        if credits_cost > 0:
-            credit_account.balance -= credits_cost
+        if credits_cost > 0 and credit_account is not None:
+            current_bal = float(credit_account.balance or 0) - credits_cost
+            credit_account.balance = current_bal
             ledger = CreditLedgerEntry(
+                id=str(uuid.uuid4()),
                 user_id=current_user.id,
                 amount=-credits_cost,
                 category="inference",
                 model_id=request.modelId,
-                balance_after=credit_account.balance,
+                balance_after=current_bal,
                 audit_reason=f"Chat inference ({tokens_total} tokens)"
             )
             db.add(ledger)
