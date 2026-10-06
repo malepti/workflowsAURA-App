@@ -2,6 +2,8 @@ import base64
 import os
 import hashlib
 import secrets
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from app.core.config import settings
 
 def get_password_hash(password: str) -> str:
     salt = secrets.token_bytes(16)
