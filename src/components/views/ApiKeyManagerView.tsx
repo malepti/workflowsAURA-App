@@ -42,7 +42,7 @@ export const ApiKeyManagerView: React.FC = () => {
     fetchDeveloperKeys();
   }, []);
 
-  const apiBase = import.meta.env.VITE_API_URL || '';
+  const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
   const fetchDeveloperKeys = async () => {
     setIsLoading(true);

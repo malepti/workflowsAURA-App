@@ -27,7 +27,7 @@ import {
   INITIAL_ADMIN_STATS
 } from '../lib/mockData';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 export type AppView =
   | 'home'
