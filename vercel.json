@@ -2,11 +2,15 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://workflowsaura-backend.onrender.com/api/$1"
+      "destination": "https://workflowsaura-app.onrender.com/api/$1"
     },
     {
       "source": "/v1/(.*)",
-      "destination": "https://workflowsaura-backend.onrender.com/v1/$1"
+      "destination": "https://workflowsaura-app.onrender.com/v1/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
