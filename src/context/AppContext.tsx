@@ -524,131 +524,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn('Real stream fallback to local synthesis:', streamErr);
       }
 
-      // If backend stream was not available or produced no chunk, use local synthesis
+      // If backend stream was not available or produced no chunk, display error notice
       if (!receivedAnyChunk && !controller.signal.aborted) {
-        let fullResponseText = '';
-        const lower = content.toLowerCase();
-        if (lower.includes('code') || lower.includes('python') || lower.includes('function') || lower.includes('react')) {
-          fullResponseText = `Here is the solution designed specifically for your request:
-
-\`\`\`typescript
-import { useState, useEffect } from 'react';
-
-// AuraAI Helper Service
-export function useAIStream(endpoint: string, options: { model: string }) {
-  const [data, setData] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-
-  async function execute(prompt: string) {
-    setLoading(true);
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model: options.model }),
-      });
-      // Stream chunks cleanly
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return { data, loading, execute };
-}
-\`\`\`
-
-### Key Features:
-- **Clean Architecture**: Follows reactive hooks with zero memory leaks.
-- **Provider Agnostic**: Easily swap models (${selectedModel.name}) without changing the interface.
-- **Error Handling**: Graceful fallback if the network or inference server times out.`;
-        } else if (lower.includes('compare') || lower.includes('model') || lower.includes('ollama')) {
-          fullResponseText = `### Model Comparison Analysis (${selectedModel.name})
-
-| Metric | ${selectedModel.name} | Standard Cloud Models | Local Ollama Clusters |
-| :--- | :--- | :--- | :--- |
-| **Context Window** | ${selectedModel.contextWindow} | 128k - 1M | 32k - 128k |
-| **Latency** | ~${selectedModel.latencyMs}ms | 250ms | 90ms (on NVLink GPUs) |
-| **Data Privacy** | ${selectedModel.isLocal ? '100% On-Premises' : 'Provider Encrypted'} | SOC2 Cloud | Self-Hosted Airgapped |
-| **Cost** | ${executionMode === 'byok' ? 'Billed via your key' : `${selectedModel.creditsPerRequest} platform credits`} | Variable API costs | Free inference |
-
-**Recommendation:** For high-throughput internal coding and private data analysis, local open-source models like **${selectedModel.isLocal ? selectedModel.name : 'Llama 3.3 or Qwen 2.5 Coder'}** offer the best privacy and speed.`;
-        } else if (
-          (lower.includes('ind') && lower.includes('wi')) ||
-          lower.includes('cricket') ||
-          (lower.includes('score') && (lower.includes('india') || lower.includes('west indies'))) ||
-          lower.includes('target for wi')
-        ) {
-          fullResponseText = `### 🏏 India vs West Indies (IND vs WI) — Live Match Summary & Target
-
-**Target for West Indies (WI): 352 runs** (Required to win in 50 overs)
-
----
-
-#### 🇮🇳 1st Innings — India Score:
-- **Total**: **351 / 7 in 50.0 overs** (Run Rate: 7.02 RPO)
-- **Top Batters**:
-  - **KL Rahul**: **129\*** off 87 balls (11 fours, 5 sixes) — Magnificent century
-  - **Rohit Sharma**: **92** off 88 balls (8 fours, 4 sixes)
-  - **Ruturaj Gaikwad**: **57** off 64 balls
-- **West Indies Bowling**: Alzarri Joseph 2/68, Gudakesh Motie 2/54
-
----
-
-#### 🌴 2nd Innings — West Indies Chase:
-- **Target**: **352 Runs**
-- **Match Status**: Chase is currently underway.
-- **Key Batsmen**: Shai Hope & Amir Jangoo building the chase
-- **Early Breakthrough**: Mohammed Siraj dismissed John Campbell
-- **Required Run Rate**: ~7.05 RPO
-
----
-*Click **Diagnosis** below to inspect source citations, verified facts, and token usage.*`;
-        } else if (['hi', 'hello', 'hey', 'greetings', 'howdy', 'good morning', 'good evening', 'hi there'].includes(lower.trim())) {
-          fullResponseText = `Hello! How can I assist you today? Feel free to ask any question, request code generation, or build custom visual workflows.`;
-        } else {
-          fullResponseText = `### Response for: "${content}"
-
-Here are the key findings and details for your query:
-
-1. **Direct Answer**:
-   We've analyzed your question using **${selectedModel.name}** with real-time context verification.
-
-2. **Key Insights**:
-   - The query was processed through the AuraAI reasoning engine with semantic validation.
-   - For live sports, real-time news, or financial questions, search grounding and source indexing are verified.
-
-3. **Follow-Up & Telemetry**:
-   Feel free to ask a follow-up, or click the **Diagnosis** button below to inspect provider origin, tokens consumed, and ledger accounting.`;
-        }
-
-        const words = fullResponseText.split(' ');
-        for (let i = 0; i < words.length; i++) {
-          if (controller.signal.aborted) break;
-          currentOutput += (i === 0 ? '' : ' ') + words[i];
-
-          setConversations((prev) =>
-            prev.map((c) => {
-              if (c.id === convId) {
-                const updatedMsgs = [...c.messages];
-                const targetIdx = updatedMsgs.findIndex((m) => m.id === assistantMsgId);
-                if (targetIdx !== -1) {
-                  updatedMsgs[targetIdx] = {
-                    ...updatedMsgs[targetIdx],
-                    content: currentOutput,
-                    tokensUsed: {
-                      prompt: Math.floor(content.length / 4) + 12,
-                      completion: Math.floor(currentOutput.length / 4),
-                      total: Math.floor((content.length + currentOutput.length) / 4) + 12
-                    }
-                  };
-                }
-                return { ...c, messages: updatedMsgs };
+        const errorText = "Unable to connect to AI server. Please verify backend service connectivity.";
+        setConversations((prev) =>
+          prev.map((c) => {
+            if (c.id === convId) {
+              const updatedMsgs = [...c.messages];
+              const targetIdx = updatedMsgs.findIndex((m) => m.id === assistantMsgId);
+              if (targetIdx !== -1) {
+                updatedMsgs[targetIdx] = {
+                  ...updatedMsgs[targetIdx],
+                  content: errorText
+                };
               }
-              return c;
-            })
-          );
-          await new Promise((r) => setTimeout(r, 22));
-        }
+              return { ...c, messages: updatedMsgs };
+            }
+            return c;
+          })
+        );
       }
 
       // Finalize Message with Full Diagnosis Telemetry
