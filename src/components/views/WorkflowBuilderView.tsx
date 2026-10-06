@@ -594,7 +594,7 @@ export const WorkflowBuilderView: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <a
-                  href={import.meta.env.VITE_LANGFLOW_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? "http://localhost:3000" : "http://localhost:3000")}
+                  href={import.meta.env.VITE_LANGFLOW_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? "http://localhost:3001" : "http://localhost:3001")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-all"
@@ -615,7 +615,7 @@ export const WorkflowBuilderView: React.FC = () => {
 
             <div className="flex-1 w-full h-full min-h-[620px] rounded-xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50 relative">
               <iframe
-                src={import.meta.env.VITE_LANGFLOW_URL && !import.meta.env.VITE_LANGFLOW_URL.includes("workflowsaura-langflow-ui.vercel.app") ? import.meta.env.VITE_LANGFLOW_URL : (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? "http://localhost:3000" : "http://localhost:3000")}
+                src={import.meta.env.VITE_LANGFLOW_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? "http://localhost:3001" : "http://localhost:3001")}
                 title="LangFlow Studio Microservice"
                 className="w-full h-full min-h-[620px] border-0"
               />
