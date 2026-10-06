@@ -29,7 +29,7 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         if result.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Email already registered")
             
-        hashed_pw = get_password_hash(user_in.password)
+        hashed_pw = get_password_hash(user_in.password[:72])
         
         user_id = str(uuid.uuid4())
         # Create User
