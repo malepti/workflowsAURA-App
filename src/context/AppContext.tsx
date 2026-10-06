@@ -27,6 +27,8 @@ import {
   INITIAL_ADMIN_STATS
 } from '../lib/mockData';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export type AppView =
   | 'home'
   | 'chat'
@@ -170,7 +172,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let mounted = true;
     if (isAuthenticated && authToken) {
       setIsAppReady(false);
-      fetch('/api/v1/sync', {
+      fetch(`${API_BASE}/api/v1/sync`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       })
       .then(res => res.json())
@@ -299,7 +301,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCreditTransactions((prev) => [tx, ...prev]);
 
     if (persistToBackend && authToken) {
-      fetch('/api/v1/credits/deduct', {
+      fetch(`${API_BASE}/api/v1/credits/deduct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -437,7 +439,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Attempt real streaming connection to backend /api/v1/chat/stream
       try {
-        const response = await fetch('/api/v1/chat/stream', {
+        const response = await fetch(`${API_BASE}/api/v1/chat/stream`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

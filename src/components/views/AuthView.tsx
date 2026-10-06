@@ -17,7 +17,8 @@ export const AuthView: React.FC = () => {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? '/api/v1/auth/login' : '/api/v1/auth/signup';
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const endpoint = `${apiBase}${isLogin ? '/api/v1/auth/login' : '/api/v1/auth/signup'}`;
       const body = isLogin 
         ? { email: formData.email, password: formData.password }
         : { email: formData.email, password: formData.password, full_name: formData.full_name || 'New User' };

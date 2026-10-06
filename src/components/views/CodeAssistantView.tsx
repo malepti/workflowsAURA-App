@@ -67,7 +67,8 @@ print(result)
     }
 
     try {
-      const response = await fetch('/api/v1/code/execute', {
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiBase}/api/v1/code/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language, code })
