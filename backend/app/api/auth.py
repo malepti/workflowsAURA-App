@@ -23,35 +23,42 @@ class TokenResponse(BaseModel):
 
 @router.post("/signup", response_model=UserResponse)
 async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Check if user exists
-    result = await db.execute(select(User).where(User.email == user_in.email))
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        # Check if user exists
+        result = await db.execute(select(User).where(User.email == user_in.email))
+        if result.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Email already registered")
+            
+        hashed_pw = get_password_hash(user_in.password)
         
-    hashed_pw = get_password_hash(user_in.password)
-    
-    user_id = str(uuid.uuid4())
-    # Create User
-    new_user = User(
-        id=user_id,
-        email=user_in.email,
-        hashed_password=hashed_pw,
-        full_name=user_in.full_name
-    )
-    db.add(new_user)
-    
-    # Give initial free credits
-    credits_account = CreditAccount(
-        id=str(uuid.uuid4()),
-        user_id=user_id,
-        balance=250
-    )
-    db.add(credits_account)
-    
-    await db.commit()
-    await db.refresh(new_user)
-    
-    return new_user
+        user_id = str(uuid.uuid4())
+        # Create User
+        new_user = User(
+            id=user_id,
+            email=user_in.email,
+            hashed_password=hashed_pw,
+            full_name=user_in.full_name
+        )
+        db.add(new_user)
+        
+        # Give initial free credits
+        credits_account = CreditAccount(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            balance=250
+        )
+        db.add(credits_account)
+        
+        await db.commit()
+        await db.refresh(new_user)
+        
+        return new_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Signup exception: {e}")
+        raise HTTPException(status_code=500, detail=f"Signup error: {str(e)}")
+
 
 
 @router.post("/login", response_model=TokenResponse)
