@@ -1,3 +1,4 @@
+import uuid
 from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -5,7 +6,7 @@ from typing import Optional
 from datetime import datetime
 from app.core.database import get_db
 from app.core.redis_client import redis_client
-from app.models.all_models import User, DeveloperApiKey
+from app.models.all_models import User, DeveloperApiKey, CreditAccount
 
 async def get_current_user(
     authorization: Optional[str] = Header(None),
@@ -73,4 +74,33 @@ async def get_current_user(
         )
         
     return user
+
+async def get_current_user_optional(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="x-api-key"),
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    try:
+        return await get_current_user(authorization, x_api_key, db)
+    except Exception:
+        # Fallback to default guest user
+        result = await db.execute(select(User).where(User.id == "guest_user_default"))
+        guest = result.scalar_one_or_none()
+        if not guest:
+            guest = User(
+                id="guest_user_default",
+                email="guest@auraai.dev",
+                full_name="Guest User",
+                role="user"
+            )
+            db.add(guest)
+            credits_account = CreditAccount(
+                id=str(uuid.uuid4()),
+                user_id="guest_user_default",
+                balance=1000.0
+            )
+            db.add(credits_account)
+            await db.commit()
+            await db.refresh(guest)
+        return guest
 

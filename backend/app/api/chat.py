@@ -14,7 +14,7 @@ from google import genai
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user_optional
 from app.models.all_models import User, Conversation, Message, CreditAccount, CreditLedgerEntry
 
 router = APIRouter()
@@ -34,7 +34,7 @@ from app.core.router import model_router
 @router.post("/stream")
 async def stream_chat_response(
     request: ChatRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     # Check Semantic Cache for Instant 0-Credit Response
