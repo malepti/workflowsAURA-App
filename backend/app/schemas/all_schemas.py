@@ -12,13 +12,14 @@ class UserResponse(BaseModel):
     id: str
     email: str
     full_name: str
-    role: str
-    plan: Optional[str] = "free"
+    role: Optional[str] = Field(default="user")
+    plan: Optional[str] = Field(default="free")
     avatar_url: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
 
 # Chat & Message schemas
 class MessageInput(BaseModel):

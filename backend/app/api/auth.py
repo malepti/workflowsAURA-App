@@ -37,7 +37,8 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
             id=user_id,
             email=user_in.email,
             hashed_password=hashed_pw,
-            full_name=user_in.full_name
+            full_name=user_in.full_name,
+            role="user"
         )
         db.add(new_user)
         
