@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -29,18 +30,20 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         
     hashed_pw = get_password_hash(user_in.password)
     
+    user_id = str(uuid.uuid4())
     # Create User
     new_user = User(
+        id=user_id,
         email=user_in.email,
         hashed_password=hashed_pw,
         full_name=user_in.full_name
     )
     db.add(new_user)
-    await db.flush() # flush to get new_user.id
     
     # Give initial free credits
     credits_account = CreditAccount(
-        user_id=new_user.id,
+        id=str(uuid.uuid4()),
+        user_id=user_id,
         balance=250
     )
     db.add(credits_account)
@@ -49,6 +52,7 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.refresh(new_user)
     
     return new_user
+
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: LoginRequest, db: AsyncSession = Depends(get_db)):
