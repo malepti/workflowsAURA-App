@@ -67,7 +67,10 @@ async def login(credentials: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == credentials.email))
     user = result.scalar_one_or_none()
     
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if user is None or not user.hashed_password:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+    if not verify_password(credentials.password, str(user.hashed_password)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
         
     # Generate Session Token
@@ -75,7 +78,7 @@ async def login(credentials: LoginRequest, db: AsyncSession = Depends(get_db)):
     session_key = f"session:{token}"
     
     # Save to Redis (valid for 7 days)
-    await redis_client.set(session_key, user.id, ex=60 * 60 * 24 * 7)
+    await redis_client.set(session_key, str(user.id), ex=60 * 60 * 24 * 7)
     
     return TokenResponse(access_token=token)
 
