@@ -210,11 +210,12 @@ async def stream_chat_response(
         
         # 5. Deduct Credits securely
         if credits_cost > 0 and credit_account is not None:
-            current_bal = float(credit_account.balance or 0) - credits_cost
-            credit_account.balance = current_bal
+            raw_bal = getattr(credit_account, "balance", 0)
+            current_bal = float(raw_bal or 0) - credits_cost
+            setattr(credit_account, "balance", current_bal)
             ledger = CreditLedgerEntry(
                 id=str(uuid.uuid4()),
-                user_id=current_user.id,
+                user_id=str(current_user.id),
                 amount=-credits_cost,
                 category="inference",
                 model_id=request.modelId,
