@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -27,19 +28,22 @@ class ChatRequest(BaseModel):
     enableWebSearch: bool = False
     attachments: Optional[List[Any]] = None
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version="1.0.0",
-    docs_url="/api/docs",
-    openapi_url="/api/openapi.json"
-)
-
-@app.on_event("startup")
-async def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     from app.core.database import engine, Base
     from app.models import all_models
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    yield
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version="1.0.0",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan
+)
+
 
 
 
