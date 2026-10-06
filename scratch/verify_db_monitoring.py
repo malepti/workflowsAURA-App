@@ -24,11 +24,13 @@ async def check():
             # Check User & Balance
             u_res = await session.execute(select(User).where(User.id == key_obj.user_id))
             user = u_res.scalar_one_or_none()
-            print(f"[Key Monitor] Associated User: {user.full_name} ({user.email})")
+            if user:
+                print(f"[Key Monitor] Associated User: {user.full_name} ({user.email})")
 
             c_res = await session.execute(select(CreditAccount).where(CreditAccount.user_id == key_obj.user_id))
             acc = c_res.scalar_one_or_none()
-            print(f"[Key Monitor] Current Credit Balance: {acc.balance}")
+            if acc:
+                print(f"[Key Monitor] Current Credit Balance: {acc.balance}")
 
             # Check Ledger
             l_res = await session.execute(
