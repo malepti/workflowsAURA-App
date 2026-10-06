@@ -27,7 +27,14 @@ import {
   INITIAL_ADMIN_STATS
 } from '../lib/mockData';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://workflowsaura-app.onrender.com').replace(/\/+$/, '');
+const getApiBase = () => {
+  const envUrl = import.meta.env.VITE_API_URL || '';
+  if (!envUrl || envUrl.includes('workflowsaura-backend.onrender.com')) {
+    return 'https://workflowsaura-app.onrender.com';
+  }
+  return envUrl.replace(/\/+$/, '');
+};
+const API_BASE = getApiBase();
 
 export type AppView =
   | 'home'

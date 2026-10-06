@@ -67,7 +67,10 @@ print(result)
     }
 
     try {
-      const apiBase = (import.meta.env.VITE_API_URL || 'https://workflowsaura-app.onrender.com').replace(/\/+$/, '');
+      const rawApiBase = import.meta.env.VITE_API_URL || '';
+      const apiBase = (!rawApiBase || rawApiBase.includes('workflowsaura-backend.onrender.com'))
+        ? 'https://workflowsaura-app.onrender.com'
+        : rawApiBase.replace(/\/+$/, '');
       const response = await fetch(`${apiBase}/api/v1/code/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
