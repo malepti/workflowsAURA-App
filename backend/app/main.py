@@ -36,28 +36,11 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def on_startup():
-    from app.core.database import engine, Base, db_url
+    from app.core.database import engine, Base
     from app.models import all_models
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-    except Exception as e:
-        print(f"Database startup sync warning ({db_url}): {e}")
-        if not db_url.startswith("sqlite"):
-            print("PostgreSQL connection failed. Falling back to SQLite database...")
-            from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-            import app.core.database as db_module
-            sqlite_url = "sqlite+aiosqlite:///./sql_app.db"
-            fallback_engine = create_async_engine(sqlite_url, echo=False, future=True)
-            db_module.engine = fallback_engine
-            db_module.AsyncSessionLocal = async_sessionmaker(
-                bind=fallback_engine,
-                class_=AsyncSession,
-                expire_on_commit=False,
-                autoflush=False
-            )
-            async with fallback_engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
 
 
 

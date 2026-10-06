@@ -1,9 +1,9 @@
 import os
+import ssl
+from typing import Dict, Any
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 from app.core.config import settings
-
-from typing import Dict, Any
 
 db_url = settings.DATABASE_URL
 
@@ -13,17 +13,21 @@ if db_url.startswith("postgres://"):
 elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# On cloud deployments (e.g. Render), fallback to SQLite if localhost PostgreSQL is specified
-is_cloud = os.getenv("RENDER") is not None or os.getenv("PORT") is not None
-if is_cloud and "localhost:5432" in db_url:
-    print("Cloud deployment detected with localhost DATABASE_URL. Falling back to SQLite.")
-    db_url = "sqlite+aiosqlite:///./sql_app.db"
-
 engine_kwargs: Dict[str, Any] = {"echo": False, "future": True}
 
 if db_url.startswith("postgresql"):
-    engine_kwargs.update({"pool_size": 20, "max_overflow": 10})
-
+    engine_kwargs.update({
+        "pool_size": 20,
+        "max_overflow": 10,
+        "pool_pre_ping": True
+    })
+    # If connecting to external cloud PostgreSQL (e.g. Render / Neon / Supabase), configure SSL
+    if "localhost" not in db_url and "127.0.0.1" not in db_url:
+        if "sslmode=" not in db_url and "ssl=" not in db_url:
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            engine_kwargs["connect_args"] = {"ssl": ssl_ctx}
 
 engine = create_async_engine(db_url, **engine_kwargs)
 
@@ -46,4 +50,5 @@ async def get_db():
             raise
         finally:
             await session.close()
+
 
