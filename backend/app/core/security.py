@@ -7,10 +7,14 @@ from app.core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    if not plain_password or not hashed_password:
+        return False
+    safe_pw = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.verify(safe_pw, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    safe_pw = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(safe_pw)
 
 def encrypt_key(raw_key: str) -> str:
     """Encrypt user API keys with AES-256-GCM before saving to database."""
