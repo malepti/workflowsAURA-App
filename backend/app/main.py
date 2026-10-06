@@ -30,11 +30,30 @@ class ChatRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.core.database import engine, Base
+    from app.core.database import engine, Base, db_url
     from app.models import all_models
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"Database startup warning ({db_url}): {e}")
+        if not db_url.startswith("sqlite"):
+            print("PostgreSQL connection failed. Falling back to SQLite database for server stability...")
+            from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+            import app.core.database as db_module
+            sqlite_url = "sqlite+aiosqlite:///./sql_app.db"
+            fallback_engine = create_async_engine(sqlite_url, echo=False, future=True)
+            db_module.engine = fallback_engine
+            db_module.AsyncSessionLocal = async_sessionmaker(
+                bind=fallback_engine,
+                class_=AsyncSession,
+                expire_on_commit=False,
+                autoflush=False
+            )
+            async with fallback_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
     yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

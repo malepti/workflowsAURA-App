@@ -13,7 +13,14 @@ if db_url.startswith("postgres://"):
 elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+# On cloud deployments (e.g. Render), fallback to SQLite if default localhost PostgreSQL is specified
+is_cloud = os.getenv("RENDER") is not None or os.getenv("PORT") is not None
+if is_cloud and "localhost:5432" in db_url:
+    print("Cloud deployment detected with localhost DATABASE_URL. Falling back to SQLite.")
+    db_url = "sqlite+aiosqlite:///./sql_app.db"
+
 engine_kwargs: Dict[str, Any] = {"echo": False, "future": True}
+
 
 if db_url.startswith("postgresql"):
     engine_kwargs.update({
