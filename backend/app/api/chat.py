@@ -15,7 +15,7 @@ from google import genai
 from app.core.config import settings
 from app.core.database import get_db
 from app.api.deps import get_current_user_optional
-from app.models.all_models import User, Conversation, Message, CreditAccount, CreditLedgerEntry
+from app.models.all_models import User, Conversation, Message, CreditAccount, CreditLedgerEntry, EncryptedApiKey
 
 router = APIRouter()
 
@@ -142,30 +142,70 @@ async def stream_chat_response(
                                     yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
                                     await asyncio.sleep(0.01)
             elif request.modelId.startswith("gemini"):
-                if not settings.GEMINI_API_KEY:
-                    yield f"data: {json.dumps({'type': 'chunk', 'content': f'\\n\\n[Error: GEMINI_API_KEY not configured on the server!]'})}\n\n"
-                    full_response += "[Error: Missing API Key]"
-                else:
-                    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                # 1. Check if user saved a BYOK key in database
+                user_key = None
+                if current_user and current_user.id != "guest_user_default":
                     try:
-                        from google.genai import types
-                        config = None
-                        if needs_search:
-                            config = types.GenerateContentConfig(tools=[{"google_search": {}}])
-                        response = await client.aio.models.generate_content_stream(
-                            model=request.modelId,
-                            contents=augmented_prompt,
-                            config=config
+                        key_res = await db.execute(
+                            select(EncryptedApiKey).where(
+                                EncryptedApiKey.user_id == current_user.id,
+                                EncryptedApiKey.provider.ilike("%gemini%")
+                            )
                         )
-                        async for chunk in response:
-                            text = chunk.text
-                            if text:
-                                full_response += text
-                                yield f"data: {json.dumps({'type': 'chunk', 'content': text})}\n\n"
-                                await asyncio.sleep(0.01)
-                    except Exception as ge:
-                        yield f"data: {json.dumps({'type': 'chunk', 'content': f'\\n\\n[Gemini API Error]: {str(ge)}'})}\n\n"
-                        full_response += f"[Gemini Error]: {str(ge)}"
+                        key_obj = key_res.scalar_one_or_none()
+                        if key_obj and key_obj.encrypted_key:
+                            from app.core.security import decrypt_key
+                            user_key = decrypt_key(key_obj.encrypted_key)
+                    except Exception as ke:
+                        print(f"BYOK Key decryption note: {ke}")
+
+                active_gemini_key = user_key or settings.GEMINI_API_KEY
+
+                if not active_gemini_key:
+                    error_msg = "🔑 [Gemini API Key Required]: Please add your Gemini API Key in the 'API Keys (BYOK)' manager tab to start chatting with Gemini models."
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': error_msg})}\n\n"
+                    full_response += error_msg
+                else:
+                    client = genai.Client(api_key=active_gemini_key)
+                    from google.genai import types
+                    config = None
+                    if needs_search:
+                        config = types.GenerateContentConfig(tools=[{"google_search": {}}])
+
+                    # Model tag resolution with fallback support
+                    models_to_try = [request.modelId, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+                    gemini_success = False
+
+                    for target_model in models_to_try:
+                        if gemini_success:
+                            break
+                        try:
+                            response = await client.aio.models.generate_content_stream(
+                                model=target_model,
+                                contents=augmented_prompt,
+                                config=config
+                            )
+                            async for chunk in response:
+                                text = chunk.text
+                                if text:
+                                    full_response += text
+                                    yield f"data: {json.dumps({'type': 'chunk', 'content': text})}\n\n"
+                                    await asyncio.sleep(0.01)
+                            gemini_success = True
+                        except Exception as ge:
+                            # If model tag error, try fallback model in list
+                            if "404" in str(ge) or "NOT_FOUND" in str(ge):
+                                continue
+                            else:
+                                err_str = f"\n\n[Gemini API Error]: {str(ge)}"
+                                yield f"data: {json.dumps({'type': 'chunk', 'content': err_str})}\n\n"
+                                full_response += err_str
+                                gemini_success = True
+
+                    if not gemini_success:
+                        err_str = "\n\n[Gemini Error]: All Gemini model tags were unavailable. Please verify API key permissions."
+                        yield f"data: {json.dumps({'type': 'chunk', 'content': err_str})}\n\n"
+                        full_response += err_str
             else:
                 # Simulated connection for other Cloud APIs (OpenAI)
                 yield f"data: {json.dumps({'type': 'chunk', 'content': f'Simulating connection to {request.modelId} API...\\n\\n'})}\n\n"
