@@ -17,6 +17,21 @@ class SemanticResponseCache:
         key = f"{model_id}:{normalized}"
         return hashlib.sha256(key.encode('utf-8')).hexdigest()
 
+    def _is_valid(self, response: str) -> bool:
+        if not response or len(response.strip()) < 5:
+            return False
+        lower = response.lower()
+        error_keywords = [
+            "[error",
+            "unable to connect",
+            "gemini api error",
+            "api key required",
+            "verify backend service",
+            "connection error",
+            "all gemini model tags were unavailable"
+        ]
+        return not any(kw in lower for kw in error_keywords)
+
     async def get_cached_response(self, prompt: str, model_id: str) -> Optional[str]:
         cache_key = self._hash_prompt(prompt, model_id)
         
@@ -24,21 +39,29 @@ class SemanticResponseCache:
         if cache_key in self._local_cache:
             entry = self._local_cache[cache_key]
             if time.time() - entry["timestamp"] < 86400: # 24h TTL
-                return entry["response"]
+                resp = entry.get("response")
+                if resp and self._is_valid(resp):
+                    return resp
+                else:
+                    del self._local_cache[cache_key]
 
         # 2. Check Redis
         try:
             val = await redis_client.get(f"prompt_cache:{cache_key}")
             if val:
                 data = json.loads(val)
-                return data.get("response")
+                resp = data.get("response")
+                if resp and self._is_valid(resp):
+                    return resp
+                else:
+                    await redis_client.delete(f"prompt_cache:{cache_key}")
         except Exception:
             pass
 
         return None
 
     async def set_cached_response(self, prompt: str, model_id: str, response: str):
-        if not prompt or not response or len(response) < 5:
+        if not prompt or not response or not self._is_valid(response):
             return
 
         cache_key = self._hash_prompt(prompt, model_id)
