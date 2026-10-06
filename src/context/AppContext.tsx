@@ -603,6 +603,8 @@ export function useAIStream(endpoint: string, options: { model: string }) {
 
 ---
 *Click **Diagnosis** below to inspect source citations, verified facts, and token usage.*`;
+        } else if (['hi', 'hello', 'hey', 'greetings', 'howdy', 'good morning', 'good evening', 'hi there'].includes(lower.trim())) {
+          fullResponseText = `Hello! How can I assist you today? Feel free to ask any question, request code generation, or build custom visual workflows.`;
         } else {
           fullResponseText = `### Response for: "${content}"
 
