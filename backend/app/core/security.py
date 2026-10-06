@@ -4,17 +4,15 @@ from passlib.context import CryptContext
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not plain_password or not hashed_password:
         return False
-    safe_pw = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.verify(safe_pw, hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    safe_pw = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.hash(safe_pw)
+    return pwd_context.hash(password)
 
 def encrypt_key(raw_key: str) -> str:
     """Encrypt user API keys with AES-256-GCM before saving to database."""
