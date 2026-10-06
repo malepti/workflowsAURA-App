@@ -193,8 +193,9 @@ async def stream_chat_response(
                                     await asyncio.sleep(0.01)
                             gemini_success = True
                         except Exception as ge:
-                            # If model tag error, try fallback model in list
-                            if "404" in str(ge) or "NOT_FOUND" in str(ge):
+                            ge_str = str(ge).upper()
+                            # If model tag error or 503 capacity error, try fallback model in list
+                            if any(err_code in ge_str for err_code in ["404", "NOT_FOUND", "503", "UNAVAILABLE", "CAPACITY", "OVERLOADED", "RESOURCE_EXHAUSTED", "429"]):
                                 continue
                             else:
                                 err_str = f"\n\n[Gemini API Error]: {str(ge)}"
