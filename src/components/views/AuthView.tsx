@@ -17,7 +17,7 @@ export const AuthView: React.FC = () => {
     setLoading(true);
 
     try {
-      const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+      const apiBase = (import.meta.env.VITE_API_URL || 'https://workflowsaura-app.onrender.com').replace(/\/+$/, '');
       const endpoint = `${apiBase}${isLogin ? '/api/v1/auth/login' : '/api/v1/auth/signup'}`;
       const body = isLogin 
         ? { email: formData.email, password: formData.password }
