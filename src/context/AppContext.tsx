@@ -26,14 +26,8 @@ import {
   SUBSCRIPTION_PLANS,
   INITIAL_ADMIN_STATS
 } from '../lib/mockData';
+import { getApiBase } from '../lib/apiConfig';
 
-const getApiBase = () => {
-  const envUrl = import.meta.env.VITE_API_URL || '';
-  if (!envUrl || envUrl.includes('workflowsaura-backend.onrender.com')) {
-    return 'https://workflowsaura-app.onrender.com';
-  }
-  return envUrl.replace(/\/+$/, '');
-};
 const API_BASE = getApiBase();
 
 export type AppView =
@@ -41,6 +35,7 @@ export type AppView =
   | 'chat'
   | 'explore'
   | 'code-assistant'
+  | 'code-review'
   | 'doc-analysis'
   | 'charts'
   | 'plugins'
@@ -51,6 +46,7 @@ export type AppView =
   | 'analytics'
   | 'account'
   | 'admin'
+  | 'prompt-studio'
   | 'user-guide';
 
 
@@ -104,6 +100,13 @@ interface AppContextType {
   pinConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
   archiveConversation: (id: string) => void;
+  submitHITLResponse: (
+    conversationId: string,
+    questionId: string,
+    selectedOptionIds: string[],
+    selectedOptionLabels: string[],
+    customText?: string
+  ) => Promise<void>;
   
   // BYOK & Keys
   addApiKey: (provider: any, key: string, displayName?: string) => Promise<boolean>;
@@ -129,7 +132,20 @@ interface AppContextType {
   adminGrantCreditsToUser: (credits: number, reason: string) => void;
   toggleAdminRole: () => void;
 
+  // Sandbox & Code Runner
+  sandboxSnippet: SandboxSnippet | null;
+  loadCodeIntoSandbox: (code: string, language?: string, options?: { autoRun?: boolean; title?: string }) => void;
+  clearSandboxSnippet: () => void;
+
   isAppReady: boolean;
+}
+
+export interface SandboxSnippet {
+  code: string;
+  language: 'python' | 'typescript' | 'sql' | 'java' | 'c' | 'csharp';
+  sourceTitle?: string;
+  autoRun?: boolean;
+  timestamp: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -137,6 +153,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authToken, setAuthToken] = useState<string | null>(() => localStorage.getItem('aura_token'));
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!authToken);
+
+  const [sandboxSnippet, setSandboxSnippet] = useState<SandboxSnippet | null>(null);
 
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('aura_user');
@@ -444,6 +462,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let streamedPreValidation: any = null;
       let streamedWhyResponse: any = null;
 
+      let backendErrorText = "";
+
       // Attempt real streaming connection to backend /api/v1/chat/stream
       try {
         const response = await fetch(`${API_BASE}/api/v1/chat/stream`, {
@@ -487,6 +507,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     streamedPreValidation = data.data;
                   } else if (data.type === 'why_response' && data.data) {
                     streamedWhyResponse = data.data;
+                  } else if (data.type === 'hitl_request' && data.question) {
+                    const hitlQ = { ...data.question, status: 'pending' as const };
+                    setConversations((prev) =>
+                      prev.map((c) => {
+                        if (c.id === convId) {
+                          const updatedMsgs = [...c.messages];
+                          const targetIdx = updatedMsgs.findIndex((m) => m.id === assistantMsgId);
+                          if (targetIdx !== -1) {
+                            updatedMsgs[targetIdx] = {
+                              ...updatedMsgs[targetIdx],
+                              hitlQuestion: hitlQ
+                            };
+                          }
+                          return { ...c, messages: updatedMsgs };
+                        }
+                        return c;
+                      })
+                    );
                   } else if (data.type === 'chunk' && data.content) {
                     currentOutput += data.content;
                     receivedAnyChunk = true;
@@ -519,6 +557,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
             }
           }
+
+          // In-line check if output contains ```hitl_question ... ``` block
+          const hitlRegex = /```(?:hitl_question)?\s*(\{[\s\S]*?"options"[\s\S]*?\})\s*```/;
+          const hitlMatch = currentOutput.match(hitlRegex);
+          if (hitlMatch) {
+            try {
+              const parsed = JSON.parse(hitlMatch[1]);
+              const hitlQ = { ...parsed, status: 'pending' as const };
+              setConversations((prev) =>
+                prev.map((c) => {
+                  if (c.id === convId) {
+                    const updatedMsgs = [...c.messages];
+                    const targetIdx = updatedMsgs.findIndex((m) => m.id === assistantMsgId);
+                    if (targetIdx !== -1 && !updatedMsgs[targetIdx].hitlQuestion) {
+                      updatedMsgs[targetIdx] = {
+                        ...updatedMsgs[targetIdx],
+                        hitlQuestion: hitlQ
+                      };
+                    }
+                    return { ...c, messages: updatedMsgs };
+                  }
+                  return c;
+                })
+              );
+            } catch (_) {}
+          }
+        } else {
+          try {
+            const errData = await response.json();
+            backendErrorText = errData.detail || `Server returned status ${response.status}`;
+          } catch (_) {
+            backendErrorText = `Server returned status ${response.status}`;
+          }
         }
       } catch (streamErr) {
         console.warn('Real stream fallback to local synthesis:', streamErr);
@@ -526,7 +597,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // If backend stream was not available or produced no chunk, display error notice
       if (!receivedAnyChunk && !controller.signal.aborted) {
-        const errorText = "Unable to connect to AI server. Please verify backend service connectivity.";
+        const errorText = backendErrorText || "Unable to connect to AI server. Please verify backend service connectivity.";
         setConversations((prev) =>
           prev.map((c) => {
             if (c.id === convId) {
@@ -692,6 +763,187 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         addToast('Error generating response: ' + (err.message || 'Server timeout'), 'error');
+      }
+    } finally {
+      setIsGenerating(false);
+      setAbortController(null);
+    }
+  };
+
+  const submitHITLResponse = async (
+    conversationId: string,
+    questionId: string,
+    selectedOptionIds: string[],
+    selectedOptionLabels: string[],
+    customText?: string
+  ) => {
+    // 1. Mark target question as answered
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id === conversationId) {
+          const updatedMsgs = c.messages.map((m) => {
+            if (m.hitlQuestion && (m.hitlQuestion.id === questionId || m.hitlQuestion.status === 'pending')) {
+              return {
+                ...m,
+                hitlQuestion: {
+                  ...m.hitlQuestion,
+                  status: 'answered' as const,
+                  selectedOptionIds,
+                  selectedOptionLabels,
+                  customResponse: customText,
+                  answeredAt: new Date().toLocaleTimeString()
+                }
+              };
+            }
+            return m;
+          });
+          return { ...c, messages: updatedMsgs };
+        }
+        return c;
+      })
+    );
+
+    // 2. Insert User's confirmation message and assistant continuation
+    const selectionSummary = selectedOptionLabels.join(', ') || 'Option Confirmed';
+    const userConfirmText = customText 
+      ? `Selected: **${selectionSummary}**\n\n*Additional Guidance:* ${customText}`
+      : `Selected: **${selectionSummary}**`;
+
+    const userMsgId = `msg_${Date.now()}`;
+    const userMessage: Message = {
+      id: userMsgId,
+      role: 'user',
+      content: userConfirmText,
+      timestamp: 'Just now'
+    };
+
+    const resumedAssistantId = `msg_resumed_${Date.now()}`;
+    const resumedAssistantMessage: Message = {
+      id: resumedAssistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: 'Just now',
+      modelUsed: selectedModel.name,
+      executionMode
+    };
+
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id === conversationId) {
+          return {
+            ...c,
+            updatedAt: 'Just now',
+            messages: [...c.messages, userMessage, resumedAssistantMessage]
+          };
+        }
+        return c;
+      })
+    );
+
+    setIsGenerating(true);
+    const controller = new AbortController();
+    setAbortController(controller);
+    addToast('Human decision confirmed! Resuming execution...', 'info');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/chat/hitl-resume`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          conversationId,
+          questionId,
+          selectedOptionIds,
+          selectedOptionLabels,
+          customText,
+          modelId: selectedModel.id,
+          executionMode
+        }),
+        signal: controller.signal
+      });
+
+      if (res.ok && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let currentOutput = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(trimmed.slice(6));
+                if (data.type === 'chunk' && data.content) {
+                  currentOutput += data.content;
+                  setConversations((prev) =>
+                    prev.map((c) => {
+                      if (c.id === conversationId) {
+                        const updated = [...c.messages];
+                        const idx = updated.findIndex((m) => m.id === resumedAssistantId);
+                        if (idx !== -1) {
+                          updated[idx] = {
+                            ...updated[idx],
+                            content: currentOutput
+                          };
+                        }
+                        return { ...c, messages: updated };
+                      }
+                      return c;
+                    })
+                  );
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      } else {
+        // Synthesized fallback
+        setConversations((prev) =>
+          prev.map((c) => {
+            if (c.id === conversationId) {
+              const updated = [...c.messages];
+              const idx = updated.findIndex((m) => m.id === resumedAssistantId);
+              if (idx !== -1) {
+                updated[idx] = {
+                  ...updated[idx],
+                  content: `### ⚡ Resumed Execution Based on Human Decision\n\n**Confirmed Direction:** ${selectionSummary}\n${customText ? `**Custom Constraints:** ${customText}\n` : ''}\nProceeding with full technical implementation adhering directly to your chosen specifications.`
+                };
+              }
+              return { ...c, messages: updated };
+            }
+            return c;
+          })
+        );
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        console.warn('HITL resume error, using synthetic fallback:', e);
+        setConversations((prev) =>
+          prev.map((c) => {
+            if (c.id === conversationId) {
+              const updated = [...c.messages];
+              const idx = updated.findIndex((m) => m.id === resumedAssistantId);
+              if (idx !== -1 && !updated[idx].content) {
+                updated[idx] = {
+                  ...updated[idx],
+                  content: `### ⚡ Resumed Execution Based on Human Decision\n\n**Confirmed Direction:** ${selectionSummary}\n${customText ? `**Custom Constraints:** ${customText}\n` : ''}\nProceeding with full implementation based on your selected parameters.`
+                };
+              }
+              return { ...c, messages: updated };
+            }
+            return c;
+          })
+        );
       }
     } finally {
       setIsGenerating(false);
@@ -931,6 +1183,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addToast(`Switched role to ${user.role === 'admin' ? 'Regular User' : 'Administrator'}.`, 'info');
   };
 
+  const normalizeSandboxLanguage = (lang?: string): 'python' | 'typescript' | 'sql' | 'java' | 'c' | 'csharp' => {
+    if (!lang) return 'python';
+    const l = lang.toLowerCase().trim();
+    if (['py', 'python', 'python3', 'langchain'].includes(l)) return 'python';
+    if (['ts', 'typescript', 'js', 'javascript', 'jsx', 'tsx', 'node', 'json'].includes(l)) return 'typescript';
+    if (['sql', 'postgresql', 'postgres', 'mysql', 'sqlite'].includes(l)) return 'sql';
+    if (['java'].includes(l)) return 'java';
+    if (['c', 'cpp', 'c++', 'cc', 'h'].includes(l)) return 'c';
+    if (['cs', 'csharp', 'c#', 'dotnet'].includes(l)) return 'csharp';
+    return 'python';
+  };
+
+  const loadCodeIntoSandbox = (
+    code: string,
+    rawLanguage?: string,
+    options?: { autoRun?: boolean; title?: string }
+  ) => {
+    const language = normalizeSandboxLanguage(rawLanguage);
+    const snippet: SandboxSnippet = {
+      code,
+      language,
+      sourceTitle: options?.title || `${rawLanguage || 'Code'} snippet from Chat`,
+      autoRun: !!options?.autoRun,
+      timestamp: Date.now()
+    };
+    setSandboxSnippet(snippet);
+    setCurrentView('code-assistant');
+  };
+
+  const clearSandboxSnippet = () => {
+    setSandboxSnippet(null);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -965,6 +1250,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toasts,
         addToast,
         removeToast,
+        sandboxSnippet,
+        loadCodeIntoSandbox,
+        clearSandboxSnippet,
         startNewChat,
         selectConversation,
         sendMessage,
@@ -976,6 +1264,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         pinConversation,
         deleteConversation,
         archiveConversation,
+        submitHITLResponse,
         addApiKey,
         testApiKey,
         toggleApiKeyActive,

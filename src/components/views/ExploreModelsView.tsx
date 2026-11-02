@@ -14,7 +14,8 @@ import {
   Radio,
   Sliders,
   CheckCircle2,
-  Lock
+  Lock,
+  Key
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { AIModel } from '../../types';
@@ -32,9 +33,12 @@ export const ExploreModelsView: React.FC = () => {
   } = useApp();
 
   const [search, setSearch] = useState('');
+  const [filterScope, setFilterScope] = useState<'live_only' | 'all'>('live_only');
   const [filterType, setFilterType] = useState<'all' | 'local' | 'cloud' | 'coding' | 'reasoning'>('all');
 
   const filteredModels = models.filter((m) => {
+    if (filterScope === 'live_only' && !m.isLive) return false;
+
     const matchesSearch =
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.providerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -50,13 +54,21 @@ export const ExploreModelsView: React.FC = () => {
     return true;
   });
 
+  const liveModelsCount = models.filter((m) => m.isLive).length;
+
   const handleSelectModel = (model: AIModel) => {
+    if (!model.isLive) {
+      addToast(`${model.name} requires an API key. Redirecting to API Key Manager...`, 'warning');
+      setCurrentView('api-keys');
+      return;
+    }
+
     setSelectedModel(model);
     if (model.isLocal) {
       setExecutionMode('platform_managed');
-      addToast(`Selected ${model.name} via local Ollama cluster (${model.creditsPerRequest} credits / 1M tokens).`, 'info');
+      addToast(`Selected ${model.name} via local Ollama cluster (0-Cost local inference).`, 'info');
     } else {
-      addToast(`Selected ${model.name}.`, 'info');
+      addToast(`Selected ${model.name} (Live Cloud API).`, 'info');
     }
   };
 
@@ -87,6 +99,46 @@ export const ExploreModelsView: React.FC = () => {
           >
             Chat Now
           </button>
+        </div>
+      </div>
+
+      {/* Live Models vs Full Catalog Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFilterScope('live_only')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+              filterScope === 'live_only'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
+            <span>Live & Ready Models ({liveModelsCount})</span>
+          </button>
+
+          <button
+            onClick={() => setFilterScope('all')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+              filterScope === 'all'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <span>Full Provider Catalog ({models.length})</span>
+          </button>
+        </div>
+
+        <div className="text-[11px] text-slate-500 flex items-center gap-2">
+          {filterScope === 'live_only' ? (
+            <span className="text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+              Showing only models with verified live API or local offline clusters. Zero simulations.
+            </span>
+          ) : (
+            <span className="text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
+              Showing all catalog models. Models marked with 🔑 require an API key in BYOK settings.
+            </span>
+          )}
         </div>
       </div>
 
@@ -223,10 +275,21 @@ export const ExploreModelsView: React.FC = () => {
                   </span>
                 </div>
 
-                {isUserPlanAllowed ? (
+                {!model.isLive ? (
+                  <button
+                    onClick={() => {
+                      addToast(`Configure your API key to activate ${model.name}.`, 'info');
+                      setCurrentView('api-keys');
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer"
+                  >
+                    <Key className="h-3 w-3 text-indigo-500" />
+                    <span>Connect Key</span>
+                  </button>
+                ) : isUserPlanAllowed ? (
                   <button
                     onClick={() => handleSelectModel(model)}
-                    className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                    className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-emerald-600 text-white shadow-2xs flex items-center gap-1'
                         : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xs'

@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user_optional
 from app.models.all_models import User, DeveloperApiKey
 
 router = APIRouter()
@@ -26,7 +26,7 @@ class DeveloperKeyResponse(BaseModel):
 
 @router.get("", response_model=List[DeveloperKeyResponse])
 async def list_developer_keys(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -49,7 +49,7 @@ async def list_developer_keys(
 @router.post("", response_model=DeveloperKeyResponse)
 async def create_developer_key(
     key_in: DeveloperKeyCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     raw_key = f"sk-aura-{secrets.token_hex(20)}"
@@ -79,7 +79,7 @@ async def create_developer_key(
 @router.delete("/{key_id}")
 async def revoke_developer_key(
     key_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

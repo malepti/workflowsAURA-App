@@ -27,11 +27,15 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const filteredCommands = ALL_SLASH_COMMANDS.filter((cmd) =>
-    cmd.command.toLowerCase().includes(filterText.toLowerCase()) ||
-    cmd.name.toLowerCase().includes(filterText.toLowerCase()) ||
-    cmd.description.toLowerCase().includes(filterText.toLowerCase())
-  );
+  const normalizedFilter = filterText.replace(/^[\\\/]/, '').toLowerCase();
+  const filteredCommands = ALL_SLASH_COMMANDS.filter((cmd) => {
+    const cmdClean = cmd.command.replace(/^[\\\/]/, '').toLowerCase();
+    return (
+      cmdClean.includes(normalizedFilter) ||
+      cmd.name.toLowerCase().includes(normalizedFilter) ||
+      cmd.description.toLowerCase().includes(normalizedFilter)
+    );
+  });
 
   useEffect(() => {
     setSelectedIndex(0);

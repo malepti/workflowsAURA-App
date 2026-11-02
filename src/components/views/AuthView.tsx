@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Mail, Lock, User, ArrowRight, Loader2, Zap } from 'lucide-react';
+import { getApiBase } from '../../lib/apiConfig';
 
 export const AuthView: React.FC = () => {
   const { login, addToast } = useApp();
@@ -17,10 +18,7 @@ export const AuthView: React.FC = () => {
     setLoading(true);
 
     try {
-      const rawApiBase = import.meta.env.VITE_API_URL || '';
-      const apiBase = (!rawApiBase || rawApiBase.includes('workflowsaura-backend.onrender.com'))
-        ? 'https://workflowsaura-app.onrender.com'
-        : rawApiBase.replace(/\/+$/, '');
+      const apiBase = getApiBase();
       const endpoint = `${apiBase}${isLogin ? '/api/v1/auth/login' : '/api/v1/auth/signup'}`;
       const body = isLogin 
         ? { email: formData.email, password: formData.password }

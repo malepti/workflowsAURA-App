@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   GitFork, Play, Plus, Trash2, Cpu, Globe, Code2, Database, FileText, 
   Settings, CheckCircle2, RefreshCw, ArrowRight, Zap, Layers, Sparkles,
-  Bot, Server, Terminal, Shield, Check, Copy, ChevronRight, CornerDownRight,
-  X, MessageSquare, Mail, Sliders, Key, KeyRound, Wrench, ArrowLeft, GripVertical, MoveLeft, MoveRight
+  Bot, Server, Terminal, Shield, Check, Copy, ChevronRight, ChevronLeft, CornerDownRight,
+  X, MessageSquare, Mail, Sliders, Key, KeyRound, Wrench, ArrowLeft, GripVertical, MoveLeft, MoveRight,
+  Wand2, Lightbulb, Compass, Loader2
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
+import { getApiBase } from '../../lib/apiConfig';
 
 export interface WorkflowNode {
   id: string;
@@ -97,6 +100,74 @@ export const WorkflowBuilderView: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<'builder' | 'embedded_langflow'>('builder');
   const [draggedNodeIndex, setDraggedNodeIndex] = useState<number | null>(null);
+  const canvasScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollCanvas = (direction: 'left' | 'right') => {
+    if (canvasScrollRef.current) {
+      canvasScrollRef.current.scrollBy({
+        left: direction === 'left' ? -350 : 350,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Text-to-Workflow AI Flow Architect State
+  const [textToWorkflowPrompt, setTextToWorkflowPrompt] = useState<string>('');
+  const [isGeneratingWorkflow, setIsGeneratingWorkflow] = useState<boolean>(false);
+  const [workflowExplanation, setWorkflowExplanation] = useState<string | null>(null);
+
+  const handleGenerateWorkflowFromText = async (promptOverride?: string) => {
+    const promptToUse = (promptOverride || textToWorkflowPrompt).trim();
+    if (!promptToUse) {
+      addToast('Please enter an automation idea to generate a workflow!', 'warning');
+      return;
+    }
+
+    setIsGeneratingWorkflow(true);
+    setExecutionLogs(logs => [...logs, `[${new Date().toLocaleTimeString()}] 🪄 AI Flow Architect: Translating '${promptToUse.slice(0, 40)}...' into DAG...`]);
+
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/workflows/generate-from-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_intent: promptToUse })
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data.nodes && data.nodes.length > 0) {
+        setNodes(data.nodes);
+        setActiveTemplate('ai_generated');
+        setSelectedNodeId(data.nodes[1]?.id || data.nodes[0]?.id);
+        setWorkflowExplanation(data.explanation || null);
+        setExecutionLogs(logs => [
+          ...logs,
+          `[${new Date().toLocaleTimeString()}] ✔ Generated ${data.nodes.length}-node DAG: '${data.workflow_name}'`,
+          `[${new Date().toLocaleTimeString()}] 💡 ${data.explanation}`
+        ]);
+
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.6 }
+          });
+        } catch {
+          // ignore if canvas not ready
+        }
+
+        addToast(`✨ AI Flow Architect built ${data.nodes.length} nodes!`, 'success');
+      }
+    } catch (err: any) {
+      console.error('Text-to-workflow error:', err);
+      addToast(`Workflow generation failed: ${err.message || 'Network error'}`, 'error');
+    } finally {
+      setIsGeneratingWorkflow(false);
+    }
+  };
 
   // Dynamic workflow nodes canvas state
   const [nodes, setNodes] = useState<WorkflowNode[]>([
@@ -450,6 +521,9 @@ export const WorkflowBuilderView: React.FC = () => {
       // Sequential Execution
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
+        setSelectedNodeId(node.id);
+        const el = document.getElementById(`canvas-node-${node.id}`);
+        el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         setNodes(prev => prev.map(n => n.id === node.id ? { ...n, status: 'running' } : n));
         setExecutionLogs(logs => [...logs, `[${new Date().toLocaleTimeString()}] Executing Node [${node.category}]: '${node.name}'...`]);
         await new Promise(r => setTimeout(r, 650));
@@ -535,6 +609,117 @@ export const WorkflowBuilderView: React.FC = () => {
               {isExecuting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
               {isExecuting ? 'Executing Pipeline...' : 'Execute workflowsAURA'}
             </button>
+          </div>
+        </div>
+
+        {/* Text-to-Workflow AI Flow Architect Banner */}
+        <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
+          {/* Subtle decorative background glow */}
+          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+          <div className="absolute -left-12 -bottom-12 h-48 w-48 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">
+                  <Wand2 className="h-4 w-4 text-indigo-300 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
+                    AI Flow Architect
+                    <span className="text-[10px] uppercase tracking-wider font-semibold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 px-2 py-0.5 rounded-full">
+                      Text-to-Workflow Generator
+                    </span>
+                  </h3>
+                  <p className="text-xs text-indigo-200/80">
+                    Type any idea in plain English — the AI designs the nodes, maps the connections, and crafts master system prompts automatically.
+                  </p>
+                </div>
+              </div>
+
+              {workflowExplanation && (
+                <span className="text-[11px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+                  ⚡ {nodes.length} nodes active
+                </span>
+              )}
+            </div>
+
+            {/* Input Bar Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleGenerateWorkflowFromText();
+              }}
+              className="flex flex-col sm:flex-row items-center gap-2"
+            >
+              <div className="relative flex-1 w-full">
+                <input
+                  type="text"
+                  value={textToWorkflowPrompt}
+                  onChange={(e) => setTextToWorkflowPrompt(e.target.value)}
+                  placeholder="e.g. When a WhatsApp message arrives, analyze emotion. If angry, lookup order in Postgres and email manager, else reply on WhatsApp..."
+                  className="w-full rounded-xl border border-indigo-400/40 bg-white/10 px-4 py-2.5 text-xs sm:text-sm text-white placeholder-indigo-300/50 backdrop-blur-md transition-all focus:border-indigo-300 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isGeneratingWorkflow || !textToWorkflowPrompt.trim()}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 shadow-md ${
+                  isGeneratingWorkflow || !textToWorkflowPrompt.trim()
+                    ? 'bg-slate-700/70 text-slate-400 cursor-not-allowed border border-slate-600/50'
+                    : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+                }`}
+              >
+                {isGeneratingWorkflow ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    <span>Architecting Flow...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 text-amber-300 fill-amber-300" />
+                    <span>Generate Workflow</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Inspiring Prompt Starters */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[11px] font-medium text-indigo-300/70 flex items-center gap-1 mr-1">
+                <Lightbulb className="h-3 w-3 text-amber-300" /> Quick Starters:
+              </span>
+              {[
+                { label: '📱 WhatsApp Support & Postgres Lookup', prompt: 'When a customer sends a WhatsApp message, analyze their emotion. If angry, lookup order in Postgres and email manager, else reply on WhatsApp.' },
+                { label: '📧 Gmail Ingestion ➔ ChromaDB RAG ➔ Reply', prompt: 'Monitor incoming support emails via Gmail IMAP, search our ChromaDB knowledge base for relevant policy articles, and draft a response.' },
+                { label: '👥 Parallel Multi-Agent Consensus', prompt: 'Parallel fan-out across Ollama local code agent, Gemini cloud reasoning agent, and merge join consensus arbitrator.' },
+                { label: '⚡ REST Webhook ➔ Python Logic ➔ JSON Dispatch', prompt: 'Accept webhook payload via REST API, run custom Python data scoring calculation script, and return JSON response.' }
+              ].map((starter, sIdx) => (
+                <button
+                  key={sIdx}
+                  type="button"
+                  onClick={() => {
+                    setTextToWorkflowPrompt(starter.prompt);
+                    handleGenerateWorkflowFromText(starter.prompt);
+                  }}
+                  className="rounded-lg bg-white/5 hover:bg-white/15 border border-indigo-400/20 px-2.5 py-1 text-[11px] text-indigo-200 hover:text-white transition-all cursor-pointer truncate max-w-[280px]"
+                  title={starter.prompt}
+                >
+                  {starter.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Explanation pill if generated */}
+            {workflowExplanation && (
+              <div className="rounded-xl bg-indigo-950/70 border border-indigo-400/30 p-2.5 text-xs text-indigo-200 flex items-start gap-2">
+                <Compass className="h-4 w-4 text-indigo-300 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <strong className="text-white">Architecture Note:</strong> {workflowExplanation}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -645,18 +830,72 @@ export const WorkflowBuilderView: React.FC = () => {
             />
 
             {/* Canvas Header Controls */}
-            <div className="relative z-10 flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                <Layers className="w-4 h-4 text-indigo-600" />
-                workflowsAURA 2D Canvas ({nodes.length} Connected Nodes)
+            <div className="relative z-10 space-y-2.5 border-b border-slate-200 pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                  <Layers className="w-4 h-4 text-indigo-600" />
+                  <span>workflowsAURA 2D Canvas ({nodes.length} Connected Nodes)</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => scrollCanvas('left')}
+                      className="p-1 rounded hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                      title="Scroll Canvas Left"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] text-slate-400 font-medium px-1">Scroll Canvas</span>
+                    <button
+                      type="button"
+                      onClick={() => scrollCanvas('right')}
+                      className="p-1 rounded hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                      title="Scroll Canvas Right"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <span className="text-[11px] text-indigo-600 font-medium font-mono bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                    {activeTemplate === 'multi_agent_parallel' ? '⚡ Mode: 2D Spatial Parallel Fan-Out Layout' : 'Mode: 2D Sequential Graph'}
+                  </span>
+                </div>
               </div>
-              <span className="text-[11px] text-indigo-600 font-medium font-mono bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                {activeTemplate === 'multi_agent_parallel' ? '⚡ Mode: 2D Spatial Parallel Fan-Out Layout' : 'Mode: 2D Sequential Graph'}
-              </span>
+
+              {/* All Nodes Pipeline Trail */}
+              <div className="flex items-center gap-1.5 overflow-x-auto py-1 text-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                  All Pipeline Steps:
+                </span>
+                {nodes.map((n, idx) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedNodeId(n.id);
+                      const el = document.getElementById(`canvas-node-${n.id}`);
+                      el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                      selectedNodeId === n.id
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>#{idx + 1} {n.name.split('(')[0].trim()}</span>
+                    {idx < nodes.length - 1 && <span className="text-slate-300 font-normal ml-1">➔</span>}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Nodes Render Canvas: 2D Spatial Parallel Branching Layout */}
-            <div className="relative z-10 my-6 min-h-[360px] flex items-center justify-between gap-6 overflow-x-auto p-4">
+            <div
+              ref={canvasScrollRef}
+              className="relative z-10 my-4 min-h-[360px] flex items-center gap-6 overflow-x-auto p-4 scroll-smooth pb-6"
+            >
               {activeTemplate === 'multi_agent_parallel' ? (
                 /* Multi-Agent 2D Column Layout */
                 <div className="flex items-center justify-between w-full gap-8">
@@ -750,6 +989,7 @@ export const WorkflowBuilderView: React.FC = () => {
                   return (
                     <React.Fragment key={node.id}>
                       <div
+                        id={`canvas-node-${node.id}`}
                         draggable
                         onDragStart={() => handleDragStart(index)}
                         onDragOver={handleDragOver}

@@ -26,6 +26,8 @@ export interface AIModel {
   allowedPlans: ('free' | 'plus' | 'pro' | 'enterprise')[];
   latencyMs: number;
   badge?: string;
+  isLive?: boolean;
+  requiresKey?: boolean;
 }
 
 export interface APIKeyRecord {
@@ -106,6 +108,34 @@ export interface MessageDiagnosis {
   ledgerTxId?: string;
 }
 
+export interface HITLOption {
+  id: string;
+  label: string;
+  description?: string;
+  recommended?: boolean;
+}
+
+export interface HITLQuestion {
+  id: string;
+  prompt: string;
+  options: HITLOption[];
+  allowCustomText?: boolean;
+  multiSelect?: boolean;
+  status: 'pending' | 'answered' | 'skipped';
+  selectedOptionIds?: string[];
+  selectedOptionLabels?: string[];
+  customResponse?: string;
+  answeredAt?: string;
+}
+
+export interface HITLResponsePayload {
+  conversationId: string;
+  questionId: string;
+  selectedOptionIds: string[];
+  selectedOptionLabels: string[];
+  customText?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -123,6 +153,7 @@ export interface Message {
   feedback?: 'like' | 'dislike' | null;
   error?: string;
   diagnosis?: MessageDiagnosis;
+  hitlQuestion?: HITLQuestion;
 }
 
 export interface Conversation {
@@ -216,3 +247,68 @@ export interface AdminStats {
   };
   errorRatePercent: number;
 }
+
+export interface PromptVersion {
+  id: string;
+  versionTag: string;
+  systemPrompt: string;
+  userTemplate: string;
+  modelId: string;
+  temperature: number;
+  variablesSchema: string[];
+  changeLog?: string;
+  status: 'production' | 'staging' | 'draft';
+  createdAt?: string;
+}
+
+export interface PromptTestCase {
+  id: string;
+  name: string;
+  inputVariables: Record<string, any>;
+  expectedOutput?: string;
+  assertionType: 'contains' | 'not_contains' | 'json_valid' | 'regex' | 'llm_judge';
+  assertionValue?: string;
+  tags?: string[];
+  createdAt?: string;
+}
+
+export interface PromptTestResult {
+  id: string;
+  versionId: string;
+  versionTag: string;
+  testCaseId: string;
+  testCaseName: string;
+  modelId: string;
+  renderedPrompt: string;
+  actualOutput: string;
+  latencyMs: number;
+  tokensPrompt: number;
+  tokensCompletion: number;
+  costUsd: number;
+  passed: boolean;
+  evalNotes?: string;
+  executionMode?: 'live_gemini' | 'live_ollama' | 'simulated';
+}
+
+export interface PromptTestRun {
+  id: string;
+  status: string;
+  totalCases: number;
+  completedCases: number;
+  avgLatencyMs: number;
+  totalCostUsd: number;
+  createdAt?: string;
+}
+
+export interface PromptProject {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  activeProductionVersionId?: string;
+  versionsCount: number;
+  testCasesCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

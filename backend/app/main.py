@@ -15,9 +15,13 @@ from app.core.database import get_db
 from app.api.sync import router as sync_router
 from app.api.chat import router as chat_router
 from app.api.code import router as code_router
+from app.api.code_review import router as code_review_router
 from app.api.developer_keys import router as developer_keys_router
 from app.api.openai_compat import router as openai_compat_router
 from app.api.langflow_proxy import router as langflow_router
+from app.api.documents import router as documents_router
+from app.api.prompt_studio import router as prompt_studio_router
+from app.api.workflows import router as workflows_router
 from pydantic import BaseModel
 from typing import Optional, List, Any
 
@@ -76,10 +80,14 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(sync_router, prefix="/api/v1", tags=["sync"])
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 app.include_router(code_router, prefix="/api/v1/code", tags=["code"])
+app.include_router(code_review_router, prefix="/api/v1/code-review", tags=["code-review"])
 app.include_router(developer_keys_router, prefix="/api/v1/developer-keys", tags=["developer-keys"])
 app.include_router(langflow_router, prefix="/api/v1/langflow", tags=["langflow-proxy"])
+app.include_router(documents_router, prefix="/api/v1/documents", tags=["documents"])
 app.include_router(openai_compat_router, prefix="/v1", tags=["openai-compat"])
 app.include_router(openai_compat_router, prefix="/api/v1/openai", tags=["openai-compat-alt"])
+app.include_router(prompt_studio_router, prefix="/api/v1/prompts", tags=["prompt-studio"])
+app.include_router(workflows_router, prefix="/api/v1/workflows", tags=["workflows-generator"])
 
 
 @app.get("/api/v1/health")

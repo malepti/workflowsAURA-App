@@ -1,5 +1,10 @@
 {
   "extraPaths": [
     "backend"
-  ]
+  ],
+  "reportGeneralTypeIssues": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportArgumentType": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none"
 }

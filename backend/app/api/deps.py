@@ -40,7 +40,7 @@ async def get_current_user(
                 detail="Invalid or revoked AuraAI Developer API key"
             )
         
-        dev_key.last_used_at = datetime.now(timezone.utc)
+        dev_key.last_used_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await db.commit()
 
         user_result = await db.execute(select(User).where(User.id == dev_key.user_id))

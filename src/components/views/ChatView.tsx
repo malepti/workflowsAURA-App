@@ -22,8 +22,16 @@ import {
   Trash2,
   Activity,
   Coins,
-  ArrowRight
+  ArrowRight,
+  Play,
+  ExternalLink,
+  BarChart3,
+  Wand2,
+  BookOpen,
+  Lightbulb,
+  Loader2
 } from 'lucide-react';
+import { getApiBase } from '../../lib/apiConfig';
 import { SlashCommandMenu } from '../SlashCommandMenu';
 import { ALL_SLASH_COMMANDS } from '../../lib/slashCommands';
 
@@ -34,6 +42,144 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Message, MessageAttachment, MessageDiagnosis } from '../../types';
 import { DiagnosisModal } from '../modals/DiagnosisModal';
+import { HITLQuestionCard } from '../chat/HITLQuestionCard';
+const ChatInteractiveChart: React.FC<{ chartDef: any; rawCode: string }> = ({ chartDef }) => {
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'area' | 'pie'>(
+    chartDef.type || 'bar'
+  );
+  const [showJson, setShowJson] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const data = Array.isArray(chartDef.data) ? chartDef.data : [];
+  if (data.length === 0) {
+    return null;
+  }
+
+  const firstObj = data[0];
+  const keys = Object.keys(firstObj).filter((k) => typeof firstObj[k] === 'number');
+  const xAxisKey =
+    Object.keys(firstObj).find((k) => typeof firstObj[k] === 'string') ||
+    Object.keys(firstObj)[0];
+
+  const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+  const title = chartDef.title || 'Interactive Data Chart';
+
+  const handleCopyData = () => {
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-3 rounded-2xl border border-indigo-200/90 bg-white p-4 shadow-sm space-y-3">
+      {/* Header Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <BarChart3 className="h-4 w-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-slate-900">{title}</h4>
+            <span className="text-[10px] text-slate-400">
+              {data.length} data points • Generated via \chart
+            </span>
+          </div>
+        </div>
+
+        {/* View Switchers */}
+        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[10px]">
+          {(['bar', 'line', 'area', 'pie'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setChartType(t)}
+              className={`px-2 py-0.5 rounded-md font-medium capitalize transition-all ${
+                chartType === t
+                  ? 'bg-white text-indigo-700 shadow-2xs font-semibold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowJson(!showJson)}
+            className={`px-1.5 py-0.5 rounded-md font-medium transition-all ${
+              showJson ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-800'
+            }`}
+            title="Inspect Data JSON"
+          >
+            {showJson ? 'Chart' : 'Data'}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyData}
+            className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
+            title="Copy JSON data"
+          >
+            {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+          </button>
+        </div>
+      </div>
+
+      {showJson ? (
+        <div className="h-[280px] overflow-auto rounded-xl bg-slate-900 p-3 font-mono text-[11px] text-slate-200 border border-slate-800">
+          <pre>{JSON.stringify(data, null, 2)}</pre>
+        </div>
+      ) : (
+        <div className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            {chartType === 'bar' ? (
+              <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey={xAxisKey} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: '10px' }} />
+                {keys.map((k, i) => (
+                  <Bar key={k} dataKey={k} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />
+                ))}
+              </BarChart>
+            ) : chartType === 'line' ? (
+              <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey={xAxisKey} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: '10px' }} />
+                {keys.map((k, i) => (
+                  <Line type="monotone" key={k} dataKey={k} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                ))}
+              </LineChart>
+            ) : chartType === 'area' ? (
+              <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey={xAxisKey} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: '10px' }} />
+                {keys.map((k, i) => (
+                  <Area type="monotone" key={k} dataKey={k} fill={COLORS[i % COLORS.length]} stroke={COLORS[i % COLORS.length]} fillOpacity={0.2} />
+                ))}
+              </AreaChart>
+            ) : (
+              <PieChart>
+                <Pie data={data} dataKey={keys[0] || 'value'} nameKey={xAxisKey} cx="50%" cy="50%" outerRadius={85} label>
+                  {data.map((_: any, i: number) => (
+                    <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip contentStyle={{ borderRadius: '12px' }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const ChatView: React.FC = () => {
   const {
@@ -50,7 +196,9 @@ export const ChatView: React.FC = () => {
     toggleMessageFeedback,
     deleteConversation,
     setCurrentView,
-    addToast
+    loadCodeIntoSandbox,
+    addToast,
+    submitHITLResponse
   } = useApp();
 
   const [inputMessage, setInputMessage] = useState('');
@@ -63,6 +211,64 @@ export const ChatView: React.FC = () => {
   const [selectedMessageContent, setSelectedMessageContent] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Magic Prompt Polish State
+  const [magicPolishOpen, setMagicPolishOpen] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
+  const [polishedResult, setPolishedResult] = useState<any | null>(null);
+
+  const handleOpenMagicPolish = async () => {
+    const textToPolish = inputMessage.trim();
+    setMagicPolishOpen(true);
+    if (textToPolish) {
+      setIsPolishing(true);
+      try {
+        const res = await fetch(`${getApiBase()}/api/v1/prompts/enhance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw_prompt: textToPolish })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPolishedResult(data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsPolishing(false);
+      }
+    } else {
+      setPolishedResult(null);
+    }
+  };
+
+  const handleApplyPolishStarter = async (starterPrompt: string, domain: string) => {
+    setInputMessage(starterPrompt);
+    setIsPolishing(true);
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/prompts/enhance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_prompt: starterPrompt, domain: domain })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPolishedResult(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsPolishing(false);
+    }
+  };
+
+  const handleApplyPolishedToComposer = () => {
+    if (polishedResult) {
+      setInputMessage(polishedResult.master_prompt || polishedResult.enhanced_user_prompt);
+      setMagicPolishOpen(false);
+      addToast('✨ Master prompt applied to chat composer!', 'success');
+    }
+  };
 
   const handleOpenDiagnosis = (msg: Message) => {
     const isLiveSearchNeeded =
@@ -185,15 +391,21 @@ export const ChatView: React.FC = () => {
       return;
     }
 
-    const newAttachment: MessageAttachment = {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
-    };
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      const newAttachment: MessageAttachment = {
+        name: file.name,
+        size: file.size,
+        type: file.type || 'image/png',
+        dataUrl: dataUrl,
+        previewUrl: file.type.startsWith('image/') ? dataUrl : undefined
+      };
 
-    setAttachments((prev) => [...prev, newAttachment]);
-    addToast(`Attached "${file.name}"`, 'success');
+      setAttachments((prev) => [...prev, newAttachment]);
+      addToast(`Attached "${file.name}"`, 'success');
+    };
+    reader.readAsDataURL(file);
   };
 
   const exportAsMarkdown = () => {
@@ -218,6 +430,10 @@ export const ChatView: React.FC = () => {
 
   // Custom renderer for code blocks and markdown styling using react-markdown
   const renderMessageContent = (content: string) => {
+    // Strip raw hitl_question code block so it renders as interactive HITLQuestionCard
+    const cleaned = content.replace(/```(?:hitl_question)?\s*\{[\s\S]*?"options"[\s\S]*?\}\s*```/g, '').trim();
+    if (!cleaned) return null;
+
     return (
       <div className="text-sm">
         <ReactMarkdown
@@ -239,101 +455,45 @@ export const ChatView: React.FC = () => {
               const language = match ? match[1] : 'code';
               const codeBody = String(children).replace(/\n$/, '');
 
+              if (language === 'hitl_question') {
+                return null;
+              }
+
               if (language === 'json_chart') {
                 try {
                   const chartDef = JSON.parse(codeBody);
-                  const data = chartDef.data || [];
-                  const type = chartDef.type || 'bar';
-                  if (data.length > 0) {
-                    const keys = Object.keys(data[0]).filter(k => typeof data[0][k] === 'number');
-                    const xAxisKey = Object.keys(data[0]).find(k => typeof data[0][k] === 'string') || Object.keys(data[0])[0];
-                    const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-                    
-                    let ChartComponent = null;
-                    if (type === 'bar') {
-                      ChartComponent = (
-                        <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey={xAxisKey} tick={{fontSize: 10}} />
-                          <YAxis tick={{fontSize: 10}} />
-                          <RechartsTooltip />
-                          <Legend />
-                          {keys.map((k, i) => <Bar key={k} dataKey={k} fill={COLORS[i % COLORS.length]} />)}
-                        </BarChart>
-                      );
-                    } else if (type === 'line') {
-                      ChartComponent = (
-                        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey={xAxisKey} tick={{fontSize: 10}} />
-                          <YAxis tick={{fontSize: 10}} />
-                          <RechartsTooltip />
-                          <Legend />
-                          {keys.map((k, i) => <Line type="monotone" key={k} dataKey={k} stroke={COLORS[i % COLORS.length]} strokeWidth={2} />)}
-                        </LineChart>
-                      );
-                    } else if (type === 'pie') {
-                      const dataKey = keys[0];
-                      ChartComponent = (
-                        <PieChart>
-                          <Pie data={data} dataKey={dataKey} nameKey={xAxisKey} cx="50%" cy="50%" outerRadius={80} fill="#8884d8">
-                            {data.map((_: any, i: number) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
-                          </Pie>
-                          <RechartsTooltip />
-                          <Legend />
-                        </PieChart>
-                      );
-                    } else if (type === 'area') {
-                      ChartComponent = (
-                        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey={xAxisKey} tick={{fontSize: 10}} />
-                          <YAxis tick={{fontSize: 10}} />
-                          <RechartsTooltip />
-                          <Legend />
-                          {keys.map((k, i) => <Area type="monotone" key={k} dataKey={k} fill={COLORS[i % COLORS.length]} stroke={COLORS[i % COLORS.length]} />)}
-                        </AreaChart>
-                      );
-                    } else if (type === 'scatter') {
-                      ChartComponent = (
-                        <ScatterChart margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey={xAxisKey} type="category" tick={{fontSize: 10}} />
-                          <YAxis tick={{fontSize: 10}} />
-                          <RechartsTooltip />
-                          <Legend />
-                          {keys.map((k, i) => <Scatter name={k} key={k} data={data} fill={COLORS[i % COLORS.length]} />)}
-                        </ScatterChart>
-                      );
-                    }
-                    
-                    return (
-                      <div className="my-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm w-full h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          {ChartComponent as React.ReactElement}
-                        </ResponsiveContainer>
-                      </div>
-                    );
+                  if (chartDef && Array.isArray(chartDef.data) && chartDef.data.length > 0) {
+                    return <ChatInteractiveChart chartDef={chartDef} rawCode={codeBody} />;
                   }
                 } catch (e) {
-                  // Fallback to normal code block if json fails
+                  // Fallback: ignore empty/invalid chart
                 }
+                return null;
               }
 
+              const lineCount = codeBody.split('\n').length;
+
               return (
-                <div className="my-3 rounded-xl border border-slate-700 bg-slate-900 text-slate-100 overflow-hidden shadow-md">
-                  <div className="flex items-center justify-between bg-slate-800/90 px-3.5 py-1.5 text-xs text-slate-300 font-mono border-b border-slate-700/80">
-                    <span className="flex items-center gap-1.5">
-                      <Code2 className="h-3.5 w-3.5 text-indigo-400" />
-                      {language}
-                    </span>
+                <div className="my-3.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-100 overflow-hidden shadow-lg shadow-black/20 ring-1 ring-white/5">
+                  {/* Code Card Header */}
+                  <div className="flex items-center justify-between bg-slate-900/95 px-3.5 py-2 text-xs text-slate-300 font-mono border-b border-slate-800 backdrop-blur">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-medium text-[11px]">
+                        <Code2 className="h-3.5 w-3.5 text-indigo-400" />
+                        <span>{language}</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-sans">
+                        {lineCount} {lineCount === 1 ? 'line' : 'lines'}
+                      </span>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(codeBody);
-                          addToast('Code snippet copied!', 'info');
+                          addToast('Code snippet copied to clipboard!', 'info');
                         }}
-                        className="flex items-center gap-1 hover:text-white transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-[11px]"
                         title="Copy code"
                       >
                         <Copy className="h-3 w-3" />
@@ -341,18 +501,22 @@ export const ChatView: React.FC = () => {
                       </button>
                       <button
                         onClick={() => {
-                          setCurrentView('code-assistant');
-                          addToast('Loaded snippet into Interactive Code Sandbox.', 'info');
+                          loadCodeIntoSandbox(codeBody, language, {
+                            title: `${language.toUpperCase()} snippet from Chat`,
+                            autoRun: false
+                          });
                         }}
-                        className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors"
-                        title="Run code in Sandbox"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all font-sans font-medium text-[11px] shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                        title="Open and run this code in Interactive Sandbox"
                       >
-                        <Terminal className="h-3 w-3" />
-                        <span>Run Sandbox</span>
+                        <Play className="h-3 w-3 fill-emerald-400 text-emerald-400" />
+                        <span>Run in Sandbox</span>
                       </button>
                     </div>
                   </div>
-                  <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed text-indigo-100 bg-slate-950/60 m-0">
+
+                  {/* Code Body */}
+                  <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed text-indigo-100/90 bg-slate-950 m-0 selection:bg-indigo-600/40 selection:text-white">
                     <code {...rest}>{children}</code>
                   </pre>
                 </div>
@@ -624,7 +788,31 @@ export const ChatView: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div>{renderMessageContent(message.content)}</div>
+                  <div>
+                    {renderMessageContent(message.content)}
+                    {(() => {
+                      let hitlQ = message.hitlQuestion;
+                      if (!hitlQ) {
+                        const hitlMatch = message.content.match(/```(?:hitl_question)?\s*(\{[\s\S]*?"options"[\s\S]*?\})\s*```/);
+                        if (hitlMatch) {
+                          try {
+                            hitlQ = { ...JSON.parse(hitlMatch[1]), status: 'pending' as const };
+                          } catch (_) {}
+                        }
+                      }
+                      if (hitlQ && activeConversation) {
+                        return (
+                          <HITLQuestionCard
+                            question={hitlQ}
+                            conversationId={activeConversation.id}
+                            onSubmit={submitHITLResponse}
+                            isSubmitting={isGenerating}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                 )}
 
                 {/* Footer Toolbar for Assistant Response */}
@@ -773,7 +961,7 @@ export const ChatView: React.FC = () => {
           </div>
         ) : (
           <div className="relative">
-            {inputMessage.startsWith('/') && (
+            {(inputMessage.startsWith('/') || inputMessage.startsWith('\\')) && (
               <SlashCommandMenu
                 filterText={inputMessage}
                 onSelect={(cmd) => {
@@ -791,25 +979,36 @@ export const ChatView: React.FC = () => {
                 accept=".pdf,.txt,.doc,.docx,.py,.ts,.js,.json,image/*"
               />
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                title="Attach file (PDF, Code, Image)"
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                  title="Attach file (PDF, Code, Image)"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+              </div>
 
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder={`Message ${selectedModel.name}... (Type / for commands)`}
-                className="w-full rounded-2xl border border-slate-200 bg-[#F8FAFF] py-3 pl-11 pr-24 text-sm text-[#172554] placeholder-slate-400 transition-all focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100"
+                className="w-full rounded-2xl border border-slate-200 bg-[#F8FAFF] py-3 pl-12 pr-40 text-sm text-[#172554] placeholder-slate-400 transition-all focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100"
               />
 
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleOpenMagicPolish}
+                className="flex items-center gap-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-2.5 py-1.5 text-xs font-bold shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+                title="✨ Magic Prompt Enhancer: Polish raw ideas into master-grade prompts"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-300 fill-amber-300 animate-pulse" />
+                <span className="hidden sm:inline">Polish</span>
+              </button>
 
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {isGenerating ? (
                 <button
                   type="button"
@@ -839,6 +1038,160 @@ export const ChatView: React.FC = () => {
         )}
       </div>
 
+      {/* Magic Prompt Enhancer Modal */}
+      {magicPolishOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[88vh]">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 p-4 sm:p-5 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">
+                  <Wand2 className="h-4 w-4 text-indigo-300 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    ✨ Magic Prompt Polish
+                    <span className="text-[10px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full font-mono">
+                      Meta-Prompt Engine
+                    </span>
+                  </h3>
+                  <p className="text-xs text-indigo-200/80">
+                    Turns rough thoughts into high-performing prompts with character depth, sensory rules & guardrails.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMagicPolishOpen(false)}
+                className="p-1 rounded-lg text-indigo-300 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4 text-xs">
+              {/* Quick Inspiration Starters if input is small or empty */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                  <Lightbulb className="h-3 w-3 text-amber-500" /> Need Inspiration? Pick a Preset Idea:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '👑 King in Crisis', prompt: 'Write a dramatic story on a king who rules his kingdom when suddenly an overwhelming crisis strikes across his kingdom, testing his courage and devotion to his people.', domain: 'storytelling' },
+                    { label: '🚀 Astronaut on Mars', prompt: 'A story about an astronaut who hears a ticking clock beneath Mars sands', domain: 'storytelling' },
+                    { label: '☕ Cozy Dragon Barista', prompt: 'A fantasy story about an ancient dragon running a hidden espresso bar in the mountains', domain: 'storytelling' },
+                    { label: '💔 Angry Refund Ticket', prompt: 'Reply to an angry enterprise customer whose shipping was delayed by 12 days and demanding a refund', domain: 'customer_support' },
+                    { label: '⚡ Kafka Microservices', prompt: 'Architect a high-throughput event-driven microservices architecture using Kafka and PostgreSQL', domain: 'code' },
+                    { label: '🎯 Viral Marketing Hook', prompt: 'Write a high-converting landing page headline and hook for an AI automation SaaS platform', domain: 'marketing' }
+                  ].map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleApplyPolishStarter(s.prompt, s.domain)}
+                      className="rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 px-2.5 py-1 text-slate-700 font-medium transition-all"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Input edit field */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 block">Your Raw Concept:</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder="Type any idea (e.g. story about time traveler, fix python bug, reply to complaint)..."
+                    className="flex-1 rounded-xl border border-slate-200 bg-[#F8FAFF] px-3.5 py-2 text-xs text-slate-900 focus:bg-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenMagicPolish()}
+                    disabled={isPolishing || !inputMessage.trim()}
+                    className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 shrink-0 transition-all disabled:opacity-50"
+                  >
+                    {isPolishing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Re-Polish'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Polished Result Preview */}
+              {isPolishing ? (
+                <div className="flex flex-col items-center justify-center p-8 text-indigo-600 space-y-2">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                  <span className="font-semibold text-xs text-slate-600">Architecting master-level prompt...</span>
+                </div>
+              ) : polishedResult ? (
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" />
+                        {polishedResult.title || `Master Prompt (${polishedResult.domain.toUpperCase()})`}
+                      </span>
+                      {polishedResult.quick_summary && (
+                        <p className="text-[11px] text-slate-500 mt-0.5">{polishedResult.quick_summary}</p>
+                      )}
+                    </div>
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-[10px] font-bold shrink-0">
+                      Master Grade 9.9
+                    </span>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-950 p-4 border border-slate-800 text-indigo-100 font-mono text-xs whitespace-pre-wrap max-h-56 overflow-y-auto leading-relaxed">
+                    {polishedResult.master_prompt || polishedResult.enhanced_user_prompt}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => setMagicPolishOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold transition-all"
+              >
+                Close
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!polishedResult}
+                  onClick={() => {
+                    handleApplyPolishedToComposer();
+                  }}
+                  className="px-4 py-2 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-50"
+                >
+                  Apply to Composer
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!polishedResult}
+                  onClick={() => {
+                    if (polishedResult) {
+                      const finalPrompt = polishedResult.master_prompt || polishedResult.enhanced_user_prompt;
+                      setMagicPolishOpen(false);
+                      setInputMessage('');
+                      sendMessage(finalPrompt, attachments);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span>Send Polished Prompt</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Diagnosis Telemetry Modal */}
       <DiagnosisModal

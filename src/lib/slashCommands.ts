@@ -7,7 +7,38 @@ export interface SlashCommand {
   instruction: string;
 }
 export const ALL_SLASH_COMMANDS: SlashCommand[] = [
-
+  {
+    command: '/hitl',
+    name: 'Human-in-the-Loop Mode',
+    description: 'Agent pauses and presents interactive choices before making architectural or critical decisions',
+    icon: 'UserCheck',
+    category: 'utility',
+    instruction: 'System Instruction: Operate strictly in Human-in-the-Loop (HITL) Mode. Before deciding on implementation details, you MUST pause and output an interactive ```hitl_question ... ``` code block with options to solicit the user\'s guidance.'
+  },
+  {
+    command: '\\hitl',
+    name: 'Human-in-the-Loop Mode',
+    description: 'Agent pauses and presents interactive choices before making architectural or critical decisions',
+    icon: 'UserCheck',
+    category: 'utility',
+    instruction: 'System Instruction: Operate strictly in Human-in-the-Loop (HITL) Mode. Before deciding on implementation details, you MUST pause and output an interactive ```hitl_question ... ``` code block with options to solicit the user\'s guidance.'
+  },
+  {
+    command: '\\chart',
+    name: 'Interactive Chart & Analysis',
+    description: 'Render interactive chart (bar, line, area, pie) with full analytical explanation',
+    icon: 'TrendingUp',
+    category: 'utility',
+    instruction: 'System Instruction: Generate an interactive visual chart. You MUST output a valid ```json_chart code block with type and data, followed immediately by a detailed written analytical breakdown and explanation.'
+  },
+  {
+    command: '/chart',
+    name: 'Interactive Chart & Analysis',
+    description: 'Render interactive chart (bar, line, area, pie) with full analytical explanation',
+    icon: 'TrendingUp',
+    category: 'utility',
+    instruction: 'System Instruction: Generate an interactive visual chart. You MUST output a valid ```json_chart code block with type and data, followed immediately by a detailed written analytical breakdown and explanation.'
+  },
   {
     command: '/brief',
     name: 'Brief Mode',

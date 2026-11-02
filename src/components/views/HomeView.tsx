@@ -19,7 +19,8 @@ import {
   HelpCircle,
   SlidersHorizontal,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  ShieldAlert
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ExecutionMode } from '../../types';
@@ -107,10 +108,10 @@ export const HomeView: React.FC = () => {
     },
     {
       id: 'charts',
-      name: 'Charts & Data',
+      name: 'Interactive Charts (\\chart)',
       icon: BarChart3,
       color: 'text-pink-600 bg-pink-50 border-pink-100',
-      action: () => setCurrentView('charts')
+      action: () => startNewChat('\\chart Show monthly revenue, sales, and profit growth trends with analytical explanation')
     },
     {
       id: 'code',
@@ -118,6 +119,13 @@ export const HomeView: React.FC = () => {
       icon: Terminal,
       color: 'text-emerald-600 bg-emerald-50 border-emerald-100',
       action: () => setCurrentView('code-assistant')
+    },
+    {
+      id: 'code-review',
+      name: 'Code Review Agent',
+      icon: ShieldAlert,
+      color: 'text-rose-600 bg-rose-50 border-rose-100',
+      action: () => setCurrentView('code-review')
     },
     {
       id: 'drive',
@@ -195,14 +203,17 @@ export const HomeView: React.FC = () => {
 
             {modelDropdownOpen && (
               <div className="absolute top-full left-0 mt-1 w-full rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl z-50 animate-in fade-in">
-                {models.map((m) => (
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                  🟢 Verified Live Models
+                </div>
+                {models.filter((m) => m.isLive).map((m) => (
                   <button
                     key={m.id}
                     onClick={() => {
                       setSelectedModel(m);
                       setModelDropdownOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors ${
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
                       selectedModel.id === m.id
                         ? 'bg-indigo-50 font-bold text-indigo-900'
                         : 'text-slate-700 hover:bg-slate-50'
@@ -216,7 +227,7 @@ export const HomeView: React.FC = () => {
                       </div>
                     </div>
                     <span className="text-[10px] text-slate-500 shrink-0 ml-2">
-                      {m.isLocal ? `${m.creditsPerRequest} cr` : `$${m.estimatedCostUsd}/req`}
+                      {m.isLocal ? '0 cr • Local' : 'Live API'}
                     </span>
                   </button>
                 ))}

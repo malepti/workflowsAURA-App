@@ -18,6 +18,8 @@ import { SubscriptionView } from './components/views/SubscriptionView';
 import { PluginMarketplaceView } from './components/views/PluginMarketplaceView';
 import { WorkflowBuilderView } from './components/views/WorkflowBuilderView';
 import { CodeAssistantView } from './components/views/CodeAssistantView';
+import { CodeReviewAgentView } from './components/views/CodeReviewAgentView';
+import { PromptStudioView } from './components/views/PromptStudioView';
 
 import { DocumentAnalysisView } from './components/views/DocumentAnalysisView';
 import { AnalyticsView } from './components/views/AnalyticsView';
@@ -63,10 +65,14 @@ const MainContent: React.FC = () => {
         return <WorkflowBuilderView />;
       case 'code-assistant':
         return <CodeAssistantView />;
+      case 'code-review':
+        return <CodeReviewAgentView />;
+      case 'prompt-studio':
+        return <PromptStudioView />;
       case 'doc-analysis':
         return <DocumentAnalysisView />;
       case 'charts':
-        return <ChartsView />;
+        return <ChatView />;
       case 'analytics':
         return <AnalyticsView />;
       case 'account':
