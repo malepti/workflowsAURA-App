@@ -232,15 +232,36 @@ export const PresentationStudioView: React.FC = () => {
   // Keyboard navigation for presentation mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Never intercept keystrokes if the user is typing in ANY form input or textarea!
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
       if (isEditing) return;
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        e.preventDefault();
-        handleNextSlide();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handlePrevSlide();
-      } else if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
+
+      // Spacebar only triggers slide advancement in Fullscreen presentation mode
+      if (isFullscreen) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+          e.preventDefault();
+          handleNextSlide();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          handlePrevSlide();
+        } else if (e.key === 'Escape') {
+          setIsFullscreen(false);
+        }
+      } else {
+        if (e.key === 'ArrowRight') {
+          handleNextSlide();
+        } else if (e.key === 'ArrowLeft') {
+          handlePrevSlide();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -885,6 +906,42 @@ export const PresentationStudioView: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {sidebarTab === 'create' && (
                 <div className="space-y-4">
+                  {/* Model Selector within Form */}
+                  <div className="space-y-1.5 rounded-xl border border-indigo-200/80 bg-indigo-50/40 p-2.5">
+                    <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Cpu className="h-3.5 w-3.5 text-indigo-600" />
+                        AI Generation Engine
+                      </span>
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase font-mono">
+                        {selectedModel.isLocal ? 'Local Mode' : 'Cloud API'}
+                      </span>
+                    </label>
+                    <select
+                      value={selectedModel.id}
+                      onChange={(e) => {
+                        const m = models.find((mod) => mod.id === e.target.value);
+                        if (m) setSelectedModel(m);
+                      }}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 shadow-2xs focus:border-indigo-500 focus:outline-none cursor-pointer"
+                    >
+                      <optgroup label="✨ Cloud Models (Google Gemini API)">
+                        {models.filter((m) => !m.isLocal).map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} ({m.providerName})
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="🖥️ Local Models (Ollama)">
+                        {models.filter((m) => m.isLocal).map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} (Local Ollama • Auto-Fallback to Gemini if offline)
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </div>
+
                   {/* Topic / Prompt */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
@@ -894,6 +951,7 @@ export const PresentationStudioView: React.FC = () => {
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
                       placeholder="e.g. Series A pitch deck for an Autonomous Multi-Agent AI Healthcare Platform..."
                       rows={3}
                       className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs leading-relaxed"
