@@ -312,3 +312,91 @@ export interface PromptProject {
   updatedAt?: string;
 }
 
+// ----------------- AI PRESENTATION & SLIDE STUDIO -----------------
+
+export type SlideLayoutType =
+  | 'hero_badge'
+  | 'stat_grid'
+  | 'split_comparison'
+  | 'process_timeline'
+  | 'feature_matrix'
+  | 'quote_takeaway';
+
+export interface PresentationTheme {
+  name: string;
+  mode: 'dark' | 'light';
+  background: string;
+  bgHex: string;
+  primary: string;
+  accent: string;
+  textPrimary: string;
+  textSecondary: string;
+  cardBg: string;
+  borderColor: string;
+  badgeBg?: string;
+  badgeText?: string;
+  fontHeading?: string;
+  fontBody?: string;
+}
+
+export interface SlideStatItem {
+  value: string;
+  label: string;
+  change?: string;
+  isPositive?: boolean;
+}
+
+export interface SlideStepItem {
+  step: string;
+  title: string;
+  desc: string;
+}
+
+export interface SlideFeatureItem {
+  title: string;
+  desc: string;
+  tag?: string;
+}
+
+export interface SlideComparisonSide {
+  title: string;
+  tone?: 'positive' | 'negative' | 'neutral';
+  items: string[];
+}
+
+export interface PresentationSlide {
+  id: string;
+  index: number;
+  layout: SlideLayoutType;
+  badge?: string;
+  title: string;
+  subtitle?: string;
+  presenter?: string;
+  date?: string;
+  highlights?: string[];
+  stats?: SlideStatItem[];
+  left?: SlideComparisonSide;
+  right?: SlideComparisonSide;
+  steps?: SlideStepItem[];
+  features?: SlideFeatureItem[];
+  quote?: string;
+  author?: string;
+  ctaText?: string;
+}
+
+export interface PresentationDeck {
+  id: string;
+  deckTitle: string;
+  deckSubtitle?: string;
+  topic?: string;
+  tone: string;
+  modelUsed?: string;
+  executionMode?: string;
+  latencyMs?: number;
+  aspectRatio: string;
+  theme: PresentationTheme;
+  slides: PresentationSlide[];
+  updatedAt?: string;
+}
+
+

@@ -22,6 +22,7 @@ from app.api.langflow_proxy import router as langflow_router
 from app.api.documents import router as documents_router
 from app.api.prompt_studio import router as prompt_studio_router
 from app.api.workflows import router as workflows_router
+from app.api.presentation_studio import router as presentation_router
 from pydantic import BaseModel
 from typing import Optional, List, Any
 
@@ -88,6 +89,7 @@ app.include_router(openai_compat_router, prefix="/v1", tags=["openai-compat"])
 app.include_router(openai_compat_router, prefix="/api/v1/openai", tags=["openai-compat-alt"])
 app.include_router(prompt_studio_router, prefix="/api/v1/prompts", tags=["prompt-studio"])
 app.include_router(workflows_router, prefix="/api/v1/workflows", tags=["workflows-generator"])
+app.include_router(presentation_router, prefix="/api/v1/presentation", tags=["presentation-studio"])
 
 
 @app.get("/api/v1/health")

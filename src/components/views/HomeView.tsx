@@ -20,7 +20,8 @@ import {
   SlidersHorizontal,
   ChevronDown,
   BarChart3,
-  ShieldAlert
+  ShieldAlert,
+  Presentation
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ExecutionMode } from '../../types';
@@ -105,6 +106,13 @@ export const HomeView: React.FC = () => {
       icon: FileText,
       color: 'text-violet-600 bg-violet-50 border-violet-100',
       action: () => setCurrentView('doc-analysis')
+    },
+    {
+      id: 'presentation',
+      name: 'AI Slide & Doc Studio',
+      icon: Presentation,
+      color: 'text-indigo-600 bg-indigo-50 border-indigo-100',
+      action: () => setCurrentView('presentation-studio')
     },
     {
       id: 'charts',

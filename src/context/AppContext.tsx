@@ -47,6 +47,7 @@ export type AppView =
   | 'account'
   | 'admin'
   | 'prompt-studio'
+  | 'presentation-studio'
   | 'user-guide';
 
 

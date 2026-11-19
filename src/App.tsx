@@ -20,6 +20,7 @@ import { WorkflowBuilderView } from './components/views/WorkflowBuilderView';
 import { CodeAssistantView } from './components/views/CodeAssistantView';
 import { CodeReviewAgentView } from './components/views/CodeReviewAgentView';
 import { PromptStudioView } from './components/views/PromptStudioView';
+import { PresentationStudioView } from './components/views/PresentationStudioView';
 
 import { DocumentAnalysisView } from './components/views/DocumentAnalysisView';
 import { AnalyticsView } from './components/views/AnalyticsView';
@@ -71,6 +72,8 @@ const MainContent: React.FC = () => {
         return <PromptStudioView />;
       case 'doc-analysis':
         return <DocumentAnalysisView />;
+      case 'presentation-studio':
+        return <PresentationStudioView />;
       case 'charts':
         return <ChatView />;
       case 'analytics':

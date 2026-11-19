@@ -34,6 +34,7 @@ class User(Base):
     generated_images = relationship("GeneratedImage", back_populates="user", cascade="all, delete-orphan")
     developer_api_keys = relationship("DeveloperApiKey", back_populates="user", cascade="all, delete-orphan")
     prompt_projects = relationship("PromptProject", back_populates="user", cascade="all, delete-orphan")
+    presentation_decks = relationship("PresentationDeck", back_populates="user", cascade="all, delete-orphan")
 
 class GeneratedImage(Base):
     __tablename__ = "generated_images"
@@ -333,5 +334,24 @@ class PromptTestResult(Base):
     run = relationship("PromptTestRun", back_populates="results")
     version = relationship("PromptVersion", back_populates="test_results")
     test_case = relationship("PromptTestCase", back_populates="test_results")
+
+class PresentationDeck(Base):
+    __tablename__ = "presentation_decks"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    title = Column(String(255), nullable=False)
+    subtitle = Column(String(512), nullable=True)
+    topic = Column(String(255), nullable=True)
+    tone = Column(String(64), default="investor_pitch")
+    model_used = Column(String(64), nullable=True)
+    execution_mode = Column(String(64), default="simulated")
+    theme_data = Column(JSON, default=dict)
+    slides_data = Column(JSON, default=list)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
+
+    user = relationship("User", back_populates="presentation_decks")
+
 
 

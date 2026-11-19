@@ -25,7 +25,8 @@ import {
   BookOpen,
   LogOut,
   GitFork,
-  FlaskConical
+  FlaskConical,
+  Presentation
 } from 'lucide-react';
 
 import { useApp, AppView } from '../context/AppContext';
@@ -87,6 +88,7 @@ export const Sidebar: React.FC = () => {
     { view: 'code-review', label: 'Code Review Agent', icon: ShieldAlert, badge: 'AGENT' },
     { view: 'prompt-studio', label: 'Prompt Testing Studio', icon: FlaskConical, badge: 'EVALS' },
     { view: 'doc-analysis', label: 'Document Analysis', icon: FileText },
+    { view: 'presentation-studio', label: 'AI Slide & Doc Studio', icon: Presentation, badge: 'AI DECK' },
     { view: 'plugins', label: 'Plugin Marketplace', icon: Boxes },
     { view: 'workflows', label: 'workflowsAURA', icon: GitFork, badge: 'NEW' },
     { view: 'api-keys', label: 'API Keys (BYOK)', icon: KeyRound },
