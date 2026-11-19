@@ -46,7 +46,7 @@ import { getApiBase } from '../../lib/apiConfig';
 
 const API_BASE = getApiBase();
 
-// Default starter presentation deck
+// Default starter presentation deck with native AuraAI clean light styling
 const DEFAULT_STARTER_DECK: PresentationDeck = {
   id: 'starter_deck_1',
   deckTitle: 'workflowsAURA Autonomous Intelligence',
@@ -57,20 +57,20 @@ const DEFAULT_STARTER_DECK: PresentationDeck = {
   executionMode: 'live_gemini',
   aspectRatio: '16:9',
   theme: {
-    name: 'Obsidian Indigo',
-    mode: 'dark',
-    background: 'from-[#090d16] via-[#0f172a] to-[#1e1b4b]',
-    bgHex: '#0b0f19',
-    primary: '#6366f1',
-    accent: '#22d3ee',
-    textPrimary: '#f8fafc',
-    textSecondary: '#94a3b8',
-    cardBg: 'rgba(255, 255, 255, 0.04)',
-    borderColor: 'rgba(99, 102, 241, 0.25)',
-    badgeBg: 'rgba(99, 102, 241, 0.15)',
-    badgeText: '#a5b4fc',
-    fontHeading: 'Inter, sans-serif',
-    fontBody: 'Inter, sans-serif'
+    name: 'Aura Indigo',
+    mode: 'light',
+    background: 'from-[#ffffff] via-[#f8fafc] to-[#eef2ff]',
+    bgHex: '#ffffff',
+    primary: '#4f46e5',
+    accent: '#06b6d4',
+    textPrimary: '#0f172a',
+    textSecondary: '#64748b',
+    cardBg: '#ffffff',
+    borderColor: '#e2e8f0',
+    badgeBg: '#eef2ff',
+    badgeText: '#4f46e5',
+    fontHeading: 'Plus Jakarta Sans, sans-serif',
+    fontBody: 'Plus Jakarta Sans, sans-serif'
   },
   slides: [
     {
@@ -167,11 +167,12 @@ const DEFAULT_STARTER_DECK: PresentationDeck = {
 };
 
 const THEME_OPTIONS: { id: string; name: string; mode: 'dark' | 'light'; primary: string; accent: string; bg: string }[] = [
-  { id: 'obsidian_indigo', name: 'Obsidian Indigo', mode: 'dark', primary: '#6366f1', accent: '#22d3ee', bg: '#0b0f19' },
-  { id: 'cyberpunk_neon', name: 'Cyberpunk Neon', mode: 'dark', primary: '#ec4899', accent: '#06b6d4', bg: '#050505' },
+  { id: 'aura_indigo', name: 'Aura Indigo (Default)', mode: 'light', primary: '#4f46e5', accent: '#06b6d4', bg: '#ffffff' },
   { id: 'minimal_pearl', name: 'Minimal Pearl', mode: 'light', primary: '#2563eb', accent: '#0d9488', bg: '#ffffff' },
-  { id: 'forest_emerald', name: 'Forest Emerald', mode: 'dark', primary: '#10b981', accent: '#34d399', bg: '#022c22' },
-  { id: 'sunset_coral', name: 'Sunset Coral', mode: 'dark', primary: '#f43f5e', accent: '#fb923c', bg: '#1a0a1e' }
+  { id: 'forest_emerald', name: 'Forest Emerald', mode: 'light', primary: '#10b981', accent: '#059669', bg: '#ffffff' },
+  { id: 'sunset_coral', name: 'Sunset Coral', mode: 'light', primary: '#f43f5e', accent: '#fb923c', bg: '#ffffff' },
+  { id: 'obsidian_indigo', name: 'Obsidian Dark', mode: 'dark', primary: '#6366f1', accent: '#22d3ee', bg: '#0b0f19' },
+  { id: 'cyberpunk_neon', name: 'Cyberpunk Neon', mode: 'dark', primary: '#ec4899', accent: '#06b6d4', bg: '#050505' }
 ];
 
 export const PresentationStudioView: React.FC = () => {
@@ -231,7 +232,7 @@ export const PresentationStudioView: React.FC = () => {
   // Keyboard navigation for presentation mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditing) return; // don't navigate when typing
+      if (isEditing) return;
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
         handleNextSlide();
@@ -311,7 +312,7 @@ export const PresentationStudioView: React.FC = () => {
       const newDeck: PresentationDeck = await res.json();
       setDeck(newDeck);
       setCurrentSlideIndex(0);
-      addToast(`Dynamic deck "${newDeck.deckTitle}" generated with ${newDeck.slides.length} slides!`, 'success');
+      addToast(`✨ Deck "${newDeck.deckTitle}" generated with ${newDeck.slides.length} slides!`, 'success');
       setSidebarTab('slides');
     } catch (err: any) {
       addToast(`Generation note: ${err.message}`, 'error');
@@ -349,9 +350,9 @@ export const PresentationStudioView: React.FC = () => {
       id: `slide_${Date.now()}`,
       index: deck.slides.length + 1,
       layout: 'feature_matrix',
-      badge: 'NEW SLIDE',
+      badge: 'NEW SECTION',
       title: 'New Section Title',
-      subtitle: 'Add a supporting explanation or key takeaway here.',
+      subtitle: 'Add a supporting explanation or key observation here.',
       features: [
         { title: 'Core Element 1', desc: 'Description of key feature or observation.', tag: 'Pillar' },
         { title: 'Core Element 2', desc: 'Description of key feature or observation.', tag: 'Pillar' },
@@ -386,7 +387,7 @@ export const PresentationStudioView: React.FC = () => {
     const newTheme: PresentationTheme = {
       name: found.name,
       mode: found.mode,
-      background: found.mode === 'dark' ? `from-[#090d16] via-[#0f172a] to-[#1e1b4b]` : `from-[#ffffff] via-[#f8fafc] to-[#f1f5f9]`,
+      background: found.mode === 'dark' ? `from-[#090d16] via-[#0f172a] to-[#1e1b4b]` : `from-[#ffffff] via-[#f8fafc] to-[#eef2ff]`,
       bgHex: found.bg,
       primary: found.primary,
       accent: found.accent,
@@ -394,10 +395,10 @@ export const PresentationStudioView: React.FC = () => {
       textSecondary: found.mode === 'dark' ? '#94a3b8' : '#64748b',
       cardBg: found.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : '#ffffff',
       borderColor: found.mode === 'dark' ? 'rgba(99, 102, 241, 0.25)' : '#e2e8f0',
-      badgeBg: found.mode === 'dark' ? 'rgba(99, 102, 241, 0.15)' : '#eff6ff',
-      badgeText: found.mode === 'dark' ? '#a5b4fc' : '#1d4ed8',
-      fontHeading: 'Inter, sans-serif',
-      fontBody: 'Inter, sans-serif'
+      badgeBg: found.mode === 'dark' ? 'rgba(99, 102, 241, 0.15)' : '#eef2ff',
+      badgeText: found.mode === 'dark' ? '#a5b4fc' : '#4f46e5',
+      fontHeading: 'Plus Jakarta Sans, sans-serif',
+      fontBody: 'Plus Jakarta Sans, sans-serif'
     };
 
     setDeck({ ...deck, theme: newTheme });
@@ -418,11 +419,11 @@ export const PresentationStudioView: React.FC = () => {
       const theme = deck.theme;
       const isDark = theme.mode === 'dark';
       const bgColor = theme.bgHex.replace('#', '') || (isDark ? '0B0F19' : 'FFFFFF');
-      const primaryColor = theme.primary.replace('#', '') || '6366F1';
-      const accentColor = theme.accent.replace('#', '') || '22D3EE';
+      const primaryColor = theme.primary.replace('#', '') || '4F46E5';
+      const accentColor = theme.accent.replace('#', '') || '06B6D4';
       const textPrimaryColor = isDark ? 'F8FAFC' : '0F172A';
       const textSecondaryColor = isDark ? '94A3B8' : '64748B';
-      const cardBgColor = isDark ? '1E293B' : 'F1F5F9';
+      const cardBgColor = isDark ? '1E293B' : 'F8FAFC';
 
       deck.slides.forEach((slide) => {
         const pSlide = pptx.addSlide();
@@ -467,7 +468,7 @@ export const PresentationStudioView: React.FC = () => {
           });
         }
 
-        // Render based on layout archetype
+        // Layout Renderers
         if (slide.layout === 'hero_badge') {
           if (slide.highlights && slide.highlights.length > 0) {
             slide.highlights.forEach((hl, i) => {
@@ -564,7 +565,7 @@ export const PresentationStudioView: React.FC = () => {
             h: 0.4,
             fontSize: 13,
             bold: true,
-            color: 'F43F5E'
+            color: 'E11D48'
           });
           const leftBullets = (slide.left?.items || []).map((it) => ({
             text: it,
@@ -588,7 +589,7 @@ export const PresentationStudioView: React.FC = () => {
             h: 0.4,
             fontSize: 13,
             bold: true,
-            color: '10B981'
+            color: '059669'
           });
           const rightBullets = (slide.right?.items || []).map((it) => ({
             text: it,
@@ -660,12 +661,11 @@ export const PresentationStudioView: React.FC = () => {
               w: 7.0,
               h: 0.4,
               fontSize: 12,
-              color: accentColor,
+              color: primaryColor,
               align: 'center'
             });
           }
         } else {
-          // feature_matrix or fallback
           const items = slide.features || [];
           items.forEach((ft, i) => {
             const xPos = 0.8 + i * 2.85;
@@ -734,17 +734,15 @@ export const PresentationStudioView: React.FC = () => {
 
       const originalSlideIndex = currentSlideIndex;
 
-      // Loop through all slides and snapshot
       for (let i = 0; i < deck.slides.length; i++) {
         setCurrentSlideIndex(i);
-        // Wait for DOM to render slide
         await new Promise((r) => setTimeout(r, 150));
 
         if (slideCanvasRef.current) {
           const canvas = await html2canvas(slideCanvasRef.current, {
             scale: 2,
             useCORS: true,
-            backgroundColor: deck.theme.bgHex || '#0b0f19'
+            backgroundColor: deck.theme.bgHex || '#ffffff'
           });
 
           const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -753,9 +751,7 @@ export const PresentationStudioView: React.FC = () => {
         }
       }
 
-      // Restore original slide
       setCurrentSlideIndex(originalSlideIndex);
-
       const fileName = `${deck.deckTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
       pdf.save(fileName);
       addToast(`PDF document saved as ${fileName}!`, 'success');
@@ -767,44 +763,45 @@ export const PresentationStudioView: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full flex-col bg-slate-900 text-slate-100 overflow-hidden font-sans">
-      {/* Top Header Bar */}
-      <header className="flex h-14 items-center justify-between border-b border-slate-800 bg-slate-950/80 px-4 sm:px-6 backdrop-blur-md z-10">
+    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#F8FAFF] text-slate-800 font-sans">
+      {/* Top Header Bar matching native AuraAI Header */}
+      <header className="h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-10 shadow-2xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 shadow-md">
-            <Presentation className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-500/20">
+            <Presentation className="h-5 w-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
-                AI Slide & Doc Studio
-                <span className="rounded-full bg-indigo-500/10 border border-indigo-400/30 px-2 py-0.5 text-[10px] font-semibold text-indigo-300">
-                  Dynamic Layouts
-                </span>
-              </h1>
+              <h1 className="text-base font-bold text-slate-900 tracking-tight">AI Slide & Doc Studio</h1>
+              <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 border border-indigo-200/60 uppercase tracking-wider">
+                Dynamic Layouts
+              </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
-              Generates tailored presentations without hardcoded templates using semantic component grammars
+            <p className="text-xs text-slate-500 hidden sm:block">
+              Generates tailored presentations without hardcoded templates using semantic component grammars.
             </p>
           </div>
         </div>
 
-        {/* Model Indicator & Quick Switch */}
-        <div className="flex items-center gap-2.5">
-          <div className="hidden md:flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/90 px-3 py-1.5 shadow-xs">
+        {/* Header Right Actions & Model Indicator */}
+        <div className="flex items-center gap-3">
+          {/* Active Model Badge */}
+          <div className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3 py-1.5 shadow-2xs">
             {selectedModel.isLocal ? (
-              <Server className="h-4 w-4 text-emerald-400 animate-pulse" />
+              <Server className="h-4 w-4 text-emerald-600 shrink-0" />
             ) : (
-              <Cpu className="h-4 w-4 text-indigo-400" />
+              <Cpu className="h-4 w-4 text-indigo-600 shrink-0" />
             )}
             <div className="flex flex-col text-left">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Active Model</span>
-              <span className="text-xs font-semibold text-slate-200">{selectedModel.name}</span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">Active Model</span>
+              <span className="text-xs font-bold text-slate-800 max-w-[140px] sm:max-w-[180px] truncate">
+                {selectedModel.name}
+              </span>
             </div>
             <button
               onClick={() => setCurrentView('explore')}
               title="Change active model in Explore Models"
-              className="ml-1 text-[11px] text-indigo-400 hover:text-indigo-300 underline font-medium cursor-pointer"
+              className="ml-1 text-[11px] text-indigo-600 hover:text-indigo-700 font-bold underline cursor-pointer"
             >
               Switch
             </button>
@@ -814,7 +811,7 @@ export const PresentationStudioView: React.FC = () => {
           <button
             onClick={handleExportPptx}
             disabled={isExportingPptx}
-            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
             title="Download editable PowerPoint (.pptx) file"
           >
             {isExportingPptx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
@@ -824,7 +821,7 @@ export const PresentationStudioView: React.FC = () => {
           <button
             onClick={handleExportPdf}
             disabled={isExportingPdf}
-            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white px-3.5 py-2 text-xs font-bold shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 cursor-pointer"
             title="Download print-ready vector PDF file"
           >
             {isExportingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
@@ -833,7 +830,7 @@ export const PresentationStudioView: React.FC = () => {
 
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-2xs cursor-pointer"
             title={isFullscreen ? 'Exit Fullscreen' : 'Present Fullscreen'}
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -845,41 +842,43 @@ export const PresentationStudioView: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Left Control Sidebar */}
         {!isFullscreen && (
-          <aside className="w-80 md:w-96 flex-shrink-0 border-r border-slate-800 bg-slate-950 flex flex-col justify-between overflow-hidden">
+          <aside className="w-80 md:w-96 flex-shrink-0 border-r border-slate-200 bg-white flex flex-col justify-between overflow-hidden shadow-2xs">
             {/* Sidebar Tab Selector */}
-            <div className="flex border-b border-slate-800 bg-slate-900/50 p-1">
-              <button
-                onClick={() => setSidebarTab('create')}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  sidebarTab === 'create' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Generate
-              </button>
-              <button
-                onClick={() => setSidebarTab('slides')}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  sidebarTab === 'slides' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Slides ({deck.slides.length})
-              </button>
-              <button
-                onClick={() => setSidebarTab('theme')}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  sidebarTab === 'theme' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Themes
-              </button>
-              <button
-                onClick={() => setSidebarTab('history')}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  sidebarTab === 'history' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                History
-              </button>
+            <div className="p-3 border-b border-slate-200 bg-slate-50/70">
+              <div className="flex bg-slate-200/70 p-1 rounded-xl">
+                <button
+                  onClick={() => setSidebarTab('create')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    sidebarTab === 'create' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Generate
+                </button>
+                <button
+                  onClick={() => setSidebarTab('slides')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    sidebarTab === 'slides' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Slides ({deck.slides.length})
+                </button>
+                <button
+                  onClick={() => setSidebarTab('theme')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    sidebarTab === 'theme' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Themes
+                </button>
+                <button
+                  onClick={() => setSidebarTab('history')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    sidebarTab === 'history' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  History
+                </button>
+              </div>
             </div>
 
             {/* Sidebar Tab Content */}
@@ -888,18 +887,18 @@ export const PresentationStudioView: React.FC = () => {
                 <div className="space-y-4">
                   {/* Topic / Prompt */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                       <span>Presentation Topic / Prompt</span>
-                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                     </label>
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       placeholder="e.g. Series A pitch deck for an Autonomous Multi-Agent AI Healthcare Platform..."
                       rows={3}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 leading-relaxed"
+                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs leading-relaxed"
                     />
-                    <div className="flex flex-wrap gap-1 pt-1">
+                    <div className="flex flex-wrap gap-1.5 pt-1">
                       {[
                         'AI Multi-Agent Pitch Deck',
                         'Q3 SaaS Financial Health',
@@ -909,7 +908,7 @@ export const PresentationStudioView: React.FC = () => {
                         <button
                           key={chip}
                           onClick={() => setPrompt(chip)}
-                          className="rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300 transition-colors cursor-pointer"
+                          className="rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 px-2.5 py-0.5 text-[10px] text-slate-600 font-medium transition-colors cursor-pointer"
                         >
                           {chip}
                         </button>
@@ -919,17 +918,17 @@ export const PresentationStudioView: React.FC = () => {
 
                   {/* Resource Document Upload */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                       <span>Resource Document (Optional)</span>
-                      <span className="text-[10px] text-slate-400">PDF, DOCX, TXT</span>
+                      <span className="text-[10px] text-slate-400 font-mono">PDF, DOCX, TXT</span>
                     </label>
-                    <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-900/60 p-3 hover:border-indigo-500 hover:bg-slate-800/40 transition-all cursor-pointer">
-                      <Upload className="h-5 w-5 text-indigo-400 mb-1" />
-                      <span className="text-xs font-medium text-slate-300">
-                        {sourceFile ? sourceFile.name : 'Upload PDF / Word Document'}
+                    <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-indigo-200 bg-indigo-50/30 p-3.5 hover:border-indigo-400 hover:bg-indigo-50/60 transition-all cursor-pointer">
+                      <Upload className="h-5 w-5 text-indigo-600 mb-1" />
+                      <span className="text-xs font-bold text-slate-700">
+                        {sourceFile ? sourceFile.name : 'Upload PDF or Word Document'}
                       </span>
                       <span className="text-[10px] text-slate-500 mt-0.5">
-                        {isParsingFile ? 'Extracting text...' : sourceFile ? `${fileCharCount.toLocaleString()} chars loaded` : 'AI will extract key facts and numbers'}
+                        {isParsingFile ? 'Extracting text...' : sourceFile ? `${fileCharCount.toLocaleString()} chars loaded` : 'AI extracts data, metrics, and insights'}
                       </span>
                       <input
                         type="file"
@@ -944,7 +943,7 @@ export const PresentationStudioView: React.FC = () => {
                           setSourceFile(null);
                           setExtractedSourceText('');
                         }}
-                        className="text-[10px] text-rose-400 hover:underline block text-right cursor-pointer"
+                        className="text-[10px] text-rose-500 hover:underline block text-right cursor-pointer"
                       >
                         Remove attached file
                       </button>
@@ -954,8 +953,10 @@ export const PresentationStudioView: React.FC = () => {
                   {/* Slide Count Slider */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-300">Target Slide Count</span>
-                      <span className="font-mono text-indigo-400 font-bold">{slideCount} Slides</span>
+                      <span className="font-bold text-slate-700">Target Slide Count</span>
+                      <span className="font-mono text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">
+                        {slideCount} Slides
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -963,17 +964,17 @@ export const PresentationStudioView: React.FC = () => {
                       max={12}
                       value={slideCount}
                       onChange={(e) => setSlideCount(parseInt(e.target.value))}
-                      className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      className="w-full accent-indigo-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
                     />
                   </div>
 
                   {/* Tone / Audience */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300">Tone & Narrative Arc</label>
+                    <label className="text-xs font-bold text-slate-700">Tone & Narrative Arc</label>
                     <select
                       value={tone}
                       onChange={(e) => setTone(e.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-2xs focus:border-indigo-500 focus:outline-none"
                     >
                       <option value="investor_pitch">Investor Pitch (High Impact, Visionary, Traction)</option>
                       <option value="tech_deep_dive">Tech Deep Dive (Architecture, Performance, Benchmarks)</option>
@@ -985,18 +986,19 @@ export const PresentationStudioView: React.FC = () => {
 
                   {/* Theme Vibe Preference */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300">Visual Vibe Preference</label>
+                    <label className="text-xs font-bold text-slate-700">Visual Vibe Preference</label>
                     <select
                       value={themePreference}
                       onChange={(e) => setThemePreference(e.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-2xs focus:border-indigo-500 focus:outline-none"
                     >
                       <option value="auto">Auto AI Selection (Matches topic sentiment)</option>
-                      <option value="obsidian_indigo">Obsidian Indigo (Dark Modern, Deep Purples)</option>
-                      <option value="cyberpunk_neon">Cyberpunk Neon (Dark Synthwave, High Contrast)</option>
-                      <option value="minimal_pearl">Minimal Pearl (Clean Light, Enterprise Slate)</option>
+                      <option value="aura_indigo">Aura Indigo (Clean White, Deep Indigo)</option>
+                      <option value="minimal_pearl">Minimal Pearl (Executive Light Slate)</option>
                       <option value="forest_emerald">Forest Emerald (Climate, Health, Organic)</option>
-                      <option value="sunset_coral">Sunset Coral (Vibrant Rose & Warm Accents)</option>
+                      <option value="sunset_coral">Sunset Coral (Vibrant Warm Rose)</option>
+                      <option value="obsidian_indigo">Obsidian Dark (Deep Modern Indigo)</option>
+                      <option value="cyberpunk_neon">Cyberpunk Neon (Dark Synthwave)</option>
                     </select>
                   </div>
 
@@ -1004,7 +1006,7 @@ export const PresentationStudioView: React.FC = () => {
                   <button
                     onClick={handleGenerateDeck}
                     disabled={isGenerating}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white py-2.5 text-xs font-bold shadow-lg transition-all disabled:opacity-50 cursor-pointer mt-2"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white py-2.5 text-xs font-bold shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 cursor-pointer mt-2"
                   >
                     {isGenerating ? (
                       <>
@@ -1025,10 +1027,10 @@ export const PresentationStudioView: React.FC = () => {
               {sidebarTab === 'slides' && (
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between pb-1">
-                    <span className="text-xs font-bold text-slate-300">Slide Sequence</span>
+                    <span className="text-xs font-bold text-slate-700">Slide Sequence</span>
                     <button
                       onClick={handleAddSlide}
-                      className="flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                      className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>Add Slide</span>
@@ -1044,23 +1046,25 @@ export const PresentationStudioView: React.FC = () => {
                           onClick={() => setCurrentSlideIndex(idx)}
                           className={`flex items-center justify-between rounded-xl p-2.5 text-xs transition-all cursor-pointer border ${
                             isActive
-                              ? 'border-indigo-500 bg-indigo-500/15 text-white shadow-xs'
-                              : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+                              ? 'border-indigo-500 bg-indigo-50/70 text-slate-900 shadow-2xs'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                           }`}
                         >
                           <div className="flex items-center gap-2.5 overflow-hidden">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-800 text-[10px] font-mono font-bold text-slate-400">
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-mono font-bold ${
+                              isActive ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
+                            }`}>
                               {idx + 1}
                             </span>
                             <div className="truncate">
-                              <p className="font-semibold truncate text-[11px]">{s.title || `Slide ${idx + 1}`}</p>
-                              <span className="text-[10px] uppercase font-mono text-indigo-400">{s.layout.replace('_', ' ')}</span>
+                              <p className="font-bold truncate text-[11px] text-slate-800">{s.title || `Slide ${idx + 1}`}</p>
+                              <span className="text-[10px] uppercase font-mono text-indigo-600 font-semibold">{s.layout.replace('_', ' ')}</span>
                             </div>
                           </div>
 
                           <button
                             onClick={(e) => handleDeleteSlide(idx, e)}
-                            className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                            className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
                             title="Delete slide"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -1075,7 +1079,7 @@ export const PresentationStudioView: React.FC = () => {
               {/* Tab: Theme Presets */}
               {sidebarTab === 'theme' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Click any theme to dynamically restyle all slides while preserving layout and content:
                   </p>
                   <div className="space-y-2">
@@ -1084,23 +1088,23 @@ export const PresentationStudioView: React.FC = () => {
                         key={th.id}
                         onClick={() => handleApplyTheme(th.id)}
                         className={`flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer ${
-                          deck.theme.name === th.name
-                            ? 'border-indigo-500 bg-indigo-500/10'
-                            : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                          deck.theme.name.includes(th.name.split(' ')[0])
+                            ? 'border-indigo-500 bg-indigo-50/60 shadow-2xs'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="flex gap-1">
-                            <span className="h-5 w-5 rounded-full" style={{ backgroundColor: th.bg }} />
+                            <span className="h-5 w-5 rounded-full border border-slate-200" style={{ backgroundColor: th.bg }} />
                             <span className="h-5 w-5 rounded-full" style={{ backgroundColor: th.primary }} />
                             <span className="h-5 w-5 rounded-full" style={{ backgroundColor: th.accent }} />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-200">{th.name}</p>
-                            <span className="text-[10px] uppercase text-slate-400">{th.mode} mode</span>
+                            <p className="text-xs font-bold text-slate-800">{th.name}</p>
+                            <span className="text-[10px] uppercase font-mono text-slate-400">{th.mode} mode</span>
                           </div>
                         </div>
-                        {deck.theme.name === th.name && <Check className="h-4 w-4 text-indigo-400" />}
+                        {deck.theme.name.includes(th.name.split(' ')[0]) && <Check className="h-4 w-4 text-indigo-600" />}
                       </div>
                     ))}
                   </div>
@@ -1110,13 +1114,13 @@ export const PresentationStudioView: React.FC = () => {
               {/* Tab: History */}
               {sidebarTab === 'history' && (
                 <div className="space-y-2">
-                  <span className="text-xs font-bold text-slate-300">Saved Presentations</span>
+                  <span className="text-xs font-bold text-slate-700">Saved Presentations</span>
                   {isLoadingHistory ? (
                     <div className="flex justify-center p-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+                      <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
                     </div>
                   ) : savedDecks.length === 0 ? (
-                    <p className="text-xs text-slate-500 text-center py-4">No saved presentations yet.</p>
+                    <p className="text-xs text-slate-400 text-center py-4">No saved presentations yet.</p>
                   ) : (
                     savedDecks.map((d) => (
                       <div
@@ -1134,12 +1138,12 @@ export const PresentationStudioView: React.FC = () => {
                             // ignore
                           }
                         }}
-                        className="rounded-xl border border-slate-800 bg-slate-900 p-2.5 hover:border-indigo-500 hover:bg-slate-800/60 transition-all cursor-pointer"
+                        className="rounded-xl border border-slate-200 bg-white p-2.5 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer shadow-2xs"
                       >
-                        <p className="text-xs font-bold text-slate-200 truncate">{d.deckTitle}</p>
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                        <p className="text-xs font-bold text-slate-800 truncate">{d.deckTitle}</p>
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
                           <span>{d.slideCount || 0} slides</span>
-                          <span>{d.modelUsed || 'gemini'}</span>
+                          <span className="font-mono text-indigo-600">{d.modelUsed || 'gemini'}</span>
                         </div>
                       </div>
                     ))
@@ -1149,35 +1153,35 @@ export const PresentationStudioView: React.FC = () => {
             </div>
 
             {/* Sidebar Footer info */}
-            <div className="border-t border-slate-800 p-3 bg-slate-950/80 text-[11px] text-slate-400 flex items-center justify-between">
+            <div className="border-t border-slate-200 p-3 bg-slate-50/70 text-[11px] text-slate-500 flex items-center justify-between">
               <span className="font-mono">{deck.aspectRatio || '16:9'} Widescreen</span>
-              <span>{deck.slides.length} Dynamic Slides</span>
+              <span className="font-medium">{deck.slides.length} Dynamic Slides</span>
             </div>
           </aside>
         )}
 
         {/* Main Stage & Slide Canvas Viewport */}
-        <main className="flex-1 flex flex-col items-center justify-between p-4 sm:p-8 bg-slate-900/60 overflow-y-auto">
+        <main className="flex-1 flex flex-col items-center justify-between p-4 sm:p-8 bg-[#F1F5F9]/70 overflow-y-auto">
           {/* Slide Floating Controller */}
           <div className="flex items-center justify-between w-full max-w-5xl mb-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrevSlide}
                 disabled={currentSlideIndex === 0}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 disabled:opacity-30 transition-colors cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-30 transition-colors shadow-2xs cursor-pointer"
                 title="Previous Slide"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
 
-              <span className="text-xs font-mono font-bold text-slate-300 px-2">
+              <span className="text-xs font-mono font-bold text-slate-700 px-2 bg-white border border-slate-200 rounded-lg py-1 shadow-2xs">
                 Slide {currentSlideIndex + 1} of {deck.slides.length}
               </span>
 
               <button
                 onClick={handleNextSlide}
                 disabled={currentSlideIndex === deck.slides.length - 1}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 disabled:opacity-30 transition-colors cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-30 transition-colors shadow-2xs cursor-pointer"
                 title="Next Slide"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -1188,11 +1192,11 @@ export const PresentationStudioView: React.FC = () => {
             <div className="flex items-center gap-2">
               {/* Layout Switcher */}
               <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-[11px] text-slate-400 hidden sm:inline">Layout:</span>
+                <span className="text-[11px] text-slate-500 font-semibold hidden sm:inline">Layout:</span>
                 <select
                   value={currentSlide.layout}
                   onChange={(e) => updateSlideField('layout', e.target.value as SlideLayoutType)}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-800 shadow-2xs focus:outline-none focus:border-indigo-500 cursor-pointer font-medium"
                 >
                   <option value="hero_badge">Hero Title & Highlights</option>
                   <option value="stat_grid">Metric Stat Grid</option>
@@ -1206,8 +1210,8 @@ export const PresentationStudioView: React.FC = () => {
               {/* Inline Edit Toggle */}
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                  isEditing ? 'bg-amber-500 text-slate-950 font-bold' : 'border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                  isEditing ? 'bg-amber-500 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <Edit3 className="h-3.5 w-3.5" />
@@ -1216,16 +1220,16 @@ export const PresentationStudioView: React.FC = () => {
             </div>
           </div>
 
-          {/* 16:9 Aspect Ratio Interactive Slide Canvas */}
+          {/* 16:9 Aspect Ratio Interactive Slide Canvas Card */}
           <div
             ref={slideCanvasRef}
             style={{
-              backgroundColor: deck.theme.bgHex || '#0b0f19',
-              color: deck.theme.textPrimary || '#f8fafc',
-              borderColor: deck.theme.borderColor || 'rgba(99, 102, 241, 0.25)'
+              backgroundColor: deck.theme.bgHex || '#ffffff',
+              color: deck.theme.textPrimary || '#0f172a',
+              borderColor: deck.theme.borderColor || '#e2e8f0'
             }}
-            className={`aspect-[16/9] w-full max-w-5xl rounded-3xl shadow-2xl relative overflow-hidden flex flex-col justify-between p-6 sm:p-12 transition-all border border-opacity-40 select-none ${
-              deck.theme.background ? `bg-gradient-to-br ${deck.theme.background}` : ''
+            className={`aspect-[16/9] w-full max-w-5xl rounded-3xl shadow-xl shadow-slate-300/40 relative overflow-hidden flex flex-col justify-between p-6 sm:p-12 transition-all border select-none ${
+              deck.theme.background ? `bg-gradient-to-br ${deck.theme.background}` : 'bg-white'
             }`}
           >
             {/* Top Bar: Badge & Metadata */}
@@ -1235,22 +1239,22 @@ export const PresentationStudioView: React.FC = () => {
                   type="text"
                   value={currentSlide.badge || ''}
                   onChange={(e) => updateSlideField('badge', e.target.value)}
-                  className="rounded-lg border border-indigo-500 bg-slate-900/60 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-indigo-400 focus:outline-none"
+                  className="rounded-lg border border-indigo-500 bg-white px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-indigo-600 focus:outline-none shadow-2xs"
                 />
               ) : (
                 <span
                   style={{
-                    backgroundColor: deck.theme.badgeBg || 'rgba(99, 102, 241, 0.15)',
-                    color: deck.theme.badgeText || deck.theme.accent || '#a5b4fc',
-                    borderColor: deck.theme.borderColor || 'rgba(99, 102, 241, 0.3)'
+                    backgroundColor: deck.theme.badgeBg || '#eef2ff',
+                    color: deck.theme.badgeText || deck.theme.primary || '#4f46e5',
+                    borderColor: deck.theme.borderColor || '#e0e7ff'
                   }}
-                  className="rounded-full border px-3 py-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shadow-xs"
+                  className="rounded-full border px-3 py-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shadow-2xs"
                 >
                   {currentSlide.badge || 'INSIGHT'}
                 </span>
               )}
 
-              <span className="text-[10px] font-mono opacity-50 tracking-widest uppercase">
+              <span className="text-[10px] font-mono opacity-60 tracking-widest uppercase font-semibold">
                 {deck.deckTitle} · {currentSlideIndex + 1}/{deck.slides.length}
               </span>
             </div>
@@ -1264,7 +1268,7 @@ export const PresentationStudioView: React.FC = () => {
                     type="text"
                     value={currentSlide.title}
                     onChange={(e) => updateSlideField('title', e.target.value)}
-                    className="w-full rounded-lg border border-indigo-500 bg-slate-900/60 px-3 py-1 text-2xl sm:text-3xl font-extrabold focus:outline-none"
+                    className="w-full rounded-lg border border-indigo-500 bg-white px-3 py-1 text-2xl sm:text-3xl font-extrabold focus:outline-none shadow-2xs"
                   />
                 ) : (
                   <h2
@@ -1281,7 +1285,7 @@ export const PresentationStudioView: React.FC = () => {
                       type="text"
                       value={currentSlide.subtitle}
                       onChange={(e) => updateSlideField('subtitle', e.target.value)}
-                      className="w-full rounded-lg border border-indigo-500 bg-slate-900/60 px-3 py-1 text-xs sm:text-sm text-slate-300 focus:outline-none"
+                      className="w-full rounded-lg border border-indigo-500 bg-white px-3 py-1 text-xs sm:text-sm text-slate-600 focus:outline-none shadow-2xs"
                     />
                   ) : (
                     <p
@@ -1306,10 +1310,10 @@ export const PresentationStudioView: React.FC = () => {
                             backgroundColor: deck.theme.cardBg,
                             borderColor: deck.theme.borderColor
                           }}
-                          className="rounded-2xl border p-4 backdrop-blur-md shadow-xs flex items-center gap-2.5"
+                          className="rounded-2xl border p-4 shadow-sm flex items-center gap-2.5"
                         >
-                          <CheckCircle2 className="h-4 w-4 flex-shrink-0" style={{ color: deck.theme.accent }} />
-                          <span className="text-xs sm:text-sm font-semibold">{hl}</span>
+                          <CheckCircle2 className="h-4 w-4 flex-shrink-0" style={{ color: deck.theme.primary }} />
+                          <span className="text-xs sm:text-sm font-bold text-slate-800">{hl}</span>
                         </div>
                       ))}
                     </div>
@@ -1317,7 +1321,7 @@ export const PresentationStudioView: React.FC = () => {
 
                   {currentSlide.presenter && (
                     <p className="text-xs italic opacity-75 pt-2">
-                      Presented by <strong style={{ color: deck.theme.accent }}>{currentSlide.presenter}</strong> · {currentSlide.date || '2026'}
+                      Presented by <strong style={{ color: deck.theme.primary }}>{currentSlide.presenter}</strong> · {currentSlide.date || '2026'}
                     </p>
                   )}
                 </div>
@@ -1333,7 +1337,7 @@ export const PresentationStudioView: React.FC = () => {
                         backgroundColor: deck.theme.cardBg,
                         borderColor: deck.theme.borderColor
                       }}
-                      className="rounded-2xl border p-4 sm:p-5 flex flex-col justify-between backdrop-blur-md shadow-xs"
+                      className="rounded-2xl border p-4 sm:p-5 flex flex-col justify-between shadow-sm"
                     >
                       <div>
                         <span
@@ -1353,7 +1357,7 @@ export const PresentationStudioView: React.FC = () => {
                         <div className="mt-3">
                           <span
                             style={{
-                              backgroundColor: deck.theme.badgeBg || 'rgba(99, 102, 241, 0.15)',
+                              backgroundColor: deck.theme.badgeBg || '#eef2ff',
                               color: deck.theme.accent
                             }}
                             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
@@ -1375,20 +1379,20 @@ export const PresentationStudioView: React.FC = () => {
                   <div
                     style={{
                       backgroundColor: deck.theme.cardBg,
-                      borderColor: 'rgba(244, 63, 94, 0.3)'
+                      borderColor: '#fecdd3'
                     }}
-                    className="rounded-2xl border p-4 sm:p-5 backdrop-blur-md space-y-3"
+                    className="rounded-2xl border p-4 sm:p-5 shadow-sm space-y-3"
                   >
                     <div className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-rose-400" />
-                      <h3 className="text-sm font-bold text-rose-400">
+                      <XCircle className="h-4 w-4 text-rose-500" />
+                      <h3 className="text-sm font-bold text-rose-600">
                         {currentSlide.left?.title || 'Conventional Approach'}
                       </h3>
                     </div>
-                    <ul className="space-y-2 text-xs sm:text-sm text-slate-300">
+                    <ul className="space-y-2 text-xs sm:text-sm text-slate-600">
                       {(currentSlide.left?.items || []).map((it, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <span className="text-rose-400 font-bold">•</span>
+                          <span className="text-rose-500 font-bold">•</span>
                           <span>{it}</span>
                         </li>
                       ))}
@@ -1399,20 +1403,20 @@ export const PresentationStudioView: React.FC = () => {
                   <div
                     style={{
                       backgroundColor: deck.theme.cardBg,
-                      borderColor: 'rgba(16, 185, 129, 0.35)'
+                      borderColor: '#bbf7d0'
                     }}
-                    className="rounded-2xl border p-4 sm:p-5 backdrop-blur-md space-y-3 shadow-lg"
+                    className="rounded-2xl border p-4 sm:p-5 shadow-sm space-y-3"
                   >
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                      <h3 className="text-sm font-bold text-emerald-400">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <h3 className="text-sm font-bold text-emerald-700">
                         {currentSlide.right?.title || 'Next-Gen Intelligent Engine'}
                       </h3>
                     </div>
-                    <ul className="space-y-2 text-xs sm:text-sm font-medium">
+                    <ul className="space-y-2 text-xs sm:text-sm font-medium text-slate-800">
                       {(currentSlide.right?.items || []).map((it, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <span className="text-emerald-400 font-bold">✓</span>
+                          <span className="text-emerald-600 font-bold">✓</span>
                           <span>{it}</span>
                         </li>
                       ))}
@@ -1431,16 +1435,16 @@ export const PresentationStudioView: React.FC = () => {
                         backgroundColor: deck.theme.cardBg,
                         borderColor: deck.theme.borderColor
                       }}
-                      className="rounded-2xl border p-4 backdrop-blur-md flex flex-col justify-between space-y-2"
+                      className="rounded-2xl border p-4 shadow-sm flex flex-col justify-between space-y-2"
                     >
                       <span
-                        style={{ color: deck.theme.accent }}
+                        style={{ color: deck.theme.primary }}
                         className="text-xs font-mono font-extrabold tracking-wider"
                       >
                         STEP {st.step}
                       </span>
                       <div>
-                        <h4 className="text-xs sm:text-sm font-bold">{st.title}</h4>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900">{st.title}</h4>
                         <p
                           style={{ color: deck.theme.textSecondary }}
                           className="text-[11px] sm:text-xs mt-1 leading-relaxed"
@@ -1463,21 +1467,21 @@ export const PresentationStudioView: React.FC = () => {
                         backgroundColor: deck.theme.cardBg,
                         borderColor: deck.theme.borderColor
                       }}
-                      className="rounded-2xl border p-4 sm:p-5 backdrop-blur-md flex flex-col justify-between space-y-3"
+                      className="rounded-2xl border p-4 sm:p-5 shadow-sm flex flex-col justify-between space-y-3"
                     >
                       <div>
                         {ft.tag && (
                           <span
                             style={{
-                              backgroundColor: deck.theme.badgeBg || 'rgba(99, 102, 241, 0.15)',
-                              color: deck.theme.accent
+                              backgroundColor: deck.theme.badgeBg || '#eef2ff',
+                              color: deck.theme.primary
                             }}
                             className="inline-block rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider mb-2"
                           >
                             {ft.tag}
                           </span>
                         )}
-                        <h4 className="text-sm font-bold">{ft.title}</h4>
+                        <h4 className="text-sm font-bold text-slate-900">{ft.title}</h4>
                         <p
                           style={{ color: deck.theme.textSecondary }}
                           className="text-xs leading-relaxed mt-1.5"
@@ -1497,14 +1501,14 @@ export const PresentationStudioView: React.FC = () => {
                     backgroundColor: deck.theme.cardBg,
                     borderColor: deck.theme.borderColor
                   }}
-                  className="rounded-3xl border p-6 sm:p-8 backdrop-blur-md text-center max-w-3xl mx-auto my-2 space-y-4"
+                  className="rounded-3xl border p-6 sm:p-8 shadow-sm text-center max-w-3xl mx-auto my-2 space-y-4"
                 >
-                  <p className="text-lg sm:text-2xl font-serif italic font-bold leading-relaxed">
+                  <p className="text-lg sm:text-2xl font-serif italic font-bold leading-relaxed text-slate-800">
                     “{currentSlide.quote || 'Transforming communication through dynamic generative design.'}”
                   </p>
                   {currentSlide.author && (
                     <p
-                      style={{ color: deck.theme.accent }}
+                      style={{ color: deck.theme.primary }}
                       className="text-xs sm:text-sm font-mono uppercase tracking-wider font-bold"
                     >
                       — {currentSlide.author}
@@ -1515,7 +1519,7 @@ export const PresentationStudioView: React.FC = () => {
             </div>
 
             {/* Bottom Footer Bar */}
-            <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-60 border-t border-slate-700/40 pt-3">
+            <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-60 border-t border-slate-200/80 pt-3 text-slate-500">
               <span>workflowsAURA Intelligent Engine</span>
               <span>Model: {deck.modelUsed || selectedModel.name}</span>
             </div>
@@ -1529,8 +1533,8 @@ export const PresentationStudioView: React.FC = () => {
                 onClick={() => setCurrentSlideIndex(idx)}
                 className={`h-2.5 rounded-full transition-all cursor-pointer ${
                   idx === currentSlideIndex
-                    ? 'w-8 bg-indigo-500 shadow-xs'
-                    : 'w-2.5 bg-slate-700 hover:bg-slate-500'
+                    ? 'w-8 bg-indigo-600 shadow-xs'
+                    : 'w-2.5 bg-slate-300 hover:bg-slate-400'
                 }`}
                 title={`Go to slide ${idx + 1}`}
               />

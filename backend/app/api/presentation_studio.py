@@ -48,6 +48,38 @@ class SaveDeckRequest(BaseModel):
 # ----------------- THEME PRESETS & GENERATOR -----------------
 
 THEME_PRESETS = {
+    "aura_indigo": {
+        "name": "Aura Indigo",
+        "mode": "light",
+        "background": "from-[#ffffff] via-[#f8fafc] to-[#eef2ff]",
+        "bgHex": "#ffffff",
+        "primary": "#4f46e5",
+        "accent": "#06b6d4",
+        "textPrimary": "#0f172a",
+        "textSecondary": "#64748b",
+        "cardBg": "#ffffff",
+        "borderColor": "#e2e8f0",
+        "badgeBg": "#eef2ff",
+        "badgeText": "#4f46e5",
+        "fontHeading": "Plus Jakarta Sans, sans-serif",
+        "fontBody": "Plus Jakarta Sans, sans-serif"
+    },
+    "minimal_pearl": {
+        "name": "Minimal Pearl",
+        "mode": "light",
+        "background": "from-[#ffffff] via-[#f8fafc] to-[#f1f5f9]",
+        "bgHex": "#ffffff",
+        "primary": "#2563eb",
+        "accent": "#0d9488",
+        "textPrimary": "#0f172a",
+        "textSecondary": "#64748b",
+        "cardBg": "#ffffff",
+        "borderColor": "#e2e8f0",
+        "badgeBg": "#eff6ff",
+        "badgeText": "#1d4ed8",
+        "fontHeading": "Inter, sans-serif",
+        "fontBody": "Inter, sans-serif"
+    },
     "obsidian_indigo": {
         "name": "Obsidian Indigo",
         "mode": "dark",
@@ -80,51 +112,35 @@ THEME_PRESETS = {
         "fontHeading": "Space Grotesk, sans-serif",
         "fontBody": "Inter, sans-serif"
     },
-    "minimal_pearl": {
-        "name": "Minimal Pearl",
-        "mode": "light",
-        "background": "from-[#ffffff] via-[#f8fafc] to-[#f1f5f9]",
-        "bgHex": "#ffffff",
-        "primary": "#2563eb",
-        "accent": "#0d9488",
-        "textPrimary": "#0f172a",
-        "textSecondary": "#64748b",
-        "cardBg": "#ffffff",
-        "borderColor": "#e2e8f0",
-        "badgeBg": "#eff6ff",
-        "badgeText": "#1d4ed8",
-        "fontHeading": "Inter, sans-serif",
-        "fontBody": "Inter, sans-serif"
-    },
     "forest_emerald": {
         "name": "Forest Emerald",
-        "mode": "dark",
-        "background": "from-[#022c22] via-[#064e3b] to-[#042f2e]",
-        "bgHex": "#022c22",
+        "mode": "light",
+        "background": "from-[#ffffff] via-[#f0fdf4] to-[#dcfce7]",
+        "bgHex": "#ffffff",
         "primary": "#10b981",
-        "accent": "#34d399",
-        "textPrimary": "#f0fdf4",
-        "textSecondary": "#a7f3d0",
-        "cardBg": "rgba(16, 185, 129, 0.06)",
-        "borderColor": "rgba(16, 185, 129, 0.25)",
-        "badgeBg": "rgba(16, 185, 129, 0.15)",
-        "badgeText": "#6ee7b7",
+        "accent": "#059669",
+        "textPrimary": "#064e3b",
+        "textSecondary": "#047857",
+        "cardBg": "#ffffff",
+        "borderColor": "#bbf7d0",
+        "badgeBg": "#ecfdf5",
+        "badgeText": "#059669",
         "fontHeading": "Outfit, sans-serif",
         "fontBody": "Inter, sans-serif"
     },
     "sunset_coral": {
         "name": "Sunset Coral",
-        "mode": "dark",
-        "background": "from-[#1a0a1e] via-[#2d1134] to-[#45122e]",
-        "bgHex": "#1a0a1e",
+        "mode": "light",
+        "background": "from-[#ffffff] via-[#fff1f2] to-[#ffe4e6]",
+        "bgHex": "#ffffff",
         "primary": "#f43f5e",
         "accent": "#fb923c",
-        "textPrimary": "#fff1f2",
-        "textSecondary": "#fecdd3",
-        "cardBg": "rgba(244, 63, 94, 0.06)",
-        "borderColor": "rgba(244, 63, 94, 0.25)",
-        "badgeBg": "rgba(251, 146, 60, 0.15)",
-        "badgeText": "#fdba74",
+        "textPrimary": "#881337",
+        "textSecondary": "#9f1239",
+        "cardBg": "#ffffff",
+        "borderColor": "#fecdd3",
+        "badgeBg": "#fff1f2",
+        "badgeText": "#e11d48",
         "fontHeading": "Inter, sans-serif",
         "fontBody": "Inter, sans-serif"
     }
@@ -137,19 +153,19 @@ def derive_dynamic_theme(prompt: str, preference: str = "auto") -> Dict[str, Any
     if preference in THEME_PRESETS:
         return THEME_PRESETS[preference]
     
-    if preference == "light":
-        return THEME_PRESETS["minimal_pearl"]
+    if preference == "dark":
+        return THEME_PRESETS["obsidian_indigo"]
     
-    if any(k in lower for k in ["cyber", "neon", "crypto", "web3", "gaming", "hacker"]):
+    if any(k in lower for k in ["cyber", "neon", "crypto", "gaming", "hacker"]):
         return THEME_PRESETS["cyberpunk_neon"]
-    elif any(k in lower for k in ["green", "climate", "eco", "health", "sustainab", "organic", "biology"]):
+    elif any(k in lower for k in ["green", "climate", "eco", "health", "sustainab", "organic"]):
         return THEME_PRESETS["forest_emerald"]
     elif any(k in lower for k in ["marketing", "creator", "brand", "social", "design", "sunset"]):
         return THEME_PRESETS["sunset_coral"]
-    elif any(k in lower for k in ["finance", "bank", "corporate", "legal", "whitepaper"]):
+    elif any(k in lower for k in ["finance", "bank", "corporate", "legal"]):
         return THEME_PRESETS["minimal_pearl"]
     else:
-        return THEME_PRESETS["obsidian_indigo"]
+        return THEME_PRESETS["aura_indigo"]
 
 # ----------------- PARSE UPLOADED FILES -----------------
 
@@ -800,3 +816,4 @@ async def delete_deck(
             pass
 
     return {"status": "success", "message": f"Deck {deck_id} removed."}
+
